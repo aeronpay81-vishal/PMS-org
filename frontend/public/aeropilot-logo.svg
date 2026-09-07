@@ -1,0 +1,10 @@
+<svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="40" height="40" rx="12" fill="url(#aeropilot-gradient)"/>
+  <path d="M22.5 10.5L27 18.5L24 19.5L25.5 27L20 22.5L14.5 27L16 19.5L13 18.5L17.5 10.5L20 14L22.5 10.5Z" fill="white"/>
+  <defs>
+    <linearGradient id="aeropilot-gradient" x1="4" y1="4" x2="36" y2="36" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#4F7DF7"/>
+      <stop offset="1" stop-color="#2563EB"/>
+    </linearGradient>
+  </defs>
+</svg>
