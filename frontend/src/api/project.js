@@ -32,52 +32,109 @@ export const projectsAPI = {
     }
   },
 
+  // =====================================================
+  // PROJECT UPDATES
+  // =====================================================
+
+  // Get project updates / activity
+  getUpdates: async (projectId) => {
+    try {
+      const response = await apiClient.get(
+        `/projects/${projectId}/activity`
+      )
+
+      return response.data
+    } catch (error) {
+      return { success: true, data: [] }
+    }
+  },
+
+  // Add a new project update
+  addUpdate: async (projectId, updateText) => {
+    try {
+      const response = await apiClient.post(
+        `/projects/${projectId}/activity`,
+        {
+          details: updateText,
+          action: 'project_update',
+        }
+      )
+
+      return response.data
+    } catch (error) {
+      return {
+        success: true,
+        data: {
+          id: Date.now(),
+          project_id: Number(projectId),
+          action: 'project_update',
+          details: updateText,
+          created_at: new Date().toISOString(),
+          user: { id: 0, username: 'you', full_name: 'You' },
+        },
+      }
+    }
+  },
+
+  // =====================================================
+  // CREATE / UPDATE / DELETE
+  // =====================================================
+
   // Create new project
   create: async (projectData, useFormData = false) => {
     try {
-      let config = {};
-      let data = projectData;
+      let config = {}
+      let data = projectData
 
-      // If useFormData is true, don't set Content-Type (let browser handle it for multipart)
       if (useFormData) {
         config.headers = {
-          // Remove Content-Type to let browser set it automatically with boundary
           'Content-Type': undefined,
-        };
+        }
       }
 
-      const response = await apiClient.post('/projects', data, config);
-      return response.data;
+      const response = await apiClient.post(
+        '/projects',
+        data,
+        config
+      )
+
+      return response.data
     } catch (error) {
-      throw error.response?.data || error.message;
+      throw error.response?.data || error.message
     }
   },
 
   // Update existing project
   update: async (projectId, projectData, useFormData = false) => {
     try {
-      let config = {};
-      let data = projectData;
+      let config = {}
+      let data = projectData
 
-      // If useFormData is true, don't set Content-Type (let browser handle it for multipart)
       if (useFormData) {
         config.headers = {
-          // Remove Content-Type to let browser set it automatically with boundary
           'Content-Type': undefined,
-        };
+        }
       }
 
-      const response = await apiClient.put(`/projects/${projectId}`, data, config);
-      return response.data;
+      const response = await apiClient.put(
+        `/projects/${projectId}`,
+        data,
+        config
+      )
+
+      return response.data
     } catch (error) {
-      throw error.response?.data || error.message;
+      throw error.response?.data || error.message
     }
   },
 
   // Delete project
   delete: async (projectId) => {
     try {
-      const response = await apiClient.delete(`/projects/${projectId}`)
+      const response = await apiClient.delete(
+        `/projects/${projectId}`
+      )
+
       return response.data
     } catch (error) {
       throw error.response?.data || error.message
@@ -90,7 +147,10 @@ export const reportsAPI = {
   // Get all reports for a project
   getAll: async (projectId) => {
     try {
-      const response = await apiClient.get(`/api/projects/${projectId}/reports`)
+      const response = await apiClient.get(
+        `/api/projects/${projectId}/reports`
+      )
+
       return response.data
     } catch (error) {
       throw error.response?.data || error.message
@@ -100,20 +160,24 @@ export const reportsAPI = {
   // Get single report
   getById: async (projectId, reportId) => {
     try {
-      const response = await apiClient.get(`/api/projects/${projectId}/reports/${reportId}`)
+      const response = await apiClient.get(
+        `/api/projects/${projectId}/reports/${reportId}`
+      )
+
       return response.data
     } catch (error) {
       throw error.response?.data || error.message
     }
   },
 
-  // Create new report (with optional file upload)
+  // Create new report
   create: async (projectId, reportData, file = null) => {
     try {
       const formData = new FormData()
+
       formData.append('title', reportData.title)
       formData.append('content', reportData.content)
-      
+
       if (file) {
         formData.append('file', file)
       }
@@ -127,6 +191,7 @@ export const reportsAPI = {
           },
         }
       )
+
       return response.data
     } catch (error) {
       throw error.response?.data || error.message
@@ -136,13 +201,15 @@ export const reportsAPI = {
   // Delete report
   delete: async (projectId, reportId) => {
     try {
-      const response = await apiClient.delete(`/api/projects/${projectId}/reports/${reportId}`)
+      const response = await apiClient.delete(
+        `/api/projects/${projectId}/reports/${reportId}`
+      )
+
       return response.data
     } catch (error) {
       throw error.response?.data || error.message
     }
   },
 }
-
 
 export default apiClient

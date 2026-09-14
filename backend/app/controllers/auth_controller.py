@@ -1,6 +1,6 @@
-
 from flask import request
 from app.services import AuthService
+from app.services.otp_service import OtpService
 
 
 class AuthController:
@@ -131,6 +131,41 @@ class AuthController:
                 'success': False,
                 'message': f'Error: {str(e)}'
             }, 500
+    
+    @staticmethod
+    def send_otp():
+        """
+        Send OTP to email via OtpService.
+        Expected JSON payload: { "email": str, "purpose": str (optional) }
+        Returns: dict with success flag and message.
+        """
+        data = request.get_json()
+        email = data.get('email')
+        purpose = data.get('purpose', 'login')
+        try:
+            result = OtpService.generate_and_send_otp(email, purpose)
+            status_code = 200 if result.get('success') else 400
+            return result, status_code
+        except Exception as e:
+            return {'success': False, 'message': str(e)}, 500
+
+    @staticmethod
+    def verify_otp():
+        """
+        Verify OTP submitted by user.
+        Expected JSON payload: { "email": str, "otp": str, "purpose": str (optional) }
+        Returns: dict with success flag and message.
+        """
+        data = request.get_json()
+        email = data.get('email')
+        otp = data.get('otp')
+        purpose = data.get('purpose', 'login')
+        try:
+            result = OtpService.verify_otp(email, otp, purpose)
+            status_code = 200 if result.get('success') else 400
+            return result, status_code
+        except Exception as e:
+            return {'success': False, 'message': str(e)}, 500
     
     @staticmethod
     def get_current_user(current_user_id):

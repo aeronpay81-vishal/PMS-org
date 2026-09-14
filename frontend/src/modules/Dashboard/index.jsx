@@ -4,13 +4,13 @@ import {
   CheckCircle2,
   Clock3,
   Users,
-  TrendingUp,
   Activity,
-  ArrowUpRight,
   AlertCircle,
   CheckSquare,
   Calendar,
-  Circle,
+  CalendarDays,
+  Plus,
+  BarChart3,
 } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 
@@ -23,19 +23,30 @@ import { tasksAPI } from "../../api/task";
 import { authAPI, projectsAPI as adminProjectsAPI } from "../../api/admin";
 import { useTheme } from "../../context/ThemeContext";
 
+const PROJECT_STATUS_META = {
+  open: { label: "Open", done: false, upcoming: false },
+  active: { label: "Active", done: false, upcoming: false },
+  in_progress: { label: "In progress", done: false, upcoming: false },
+  review: { label: "In review", done: false, upcoming: false },
+  on_hold: { label: "On hold", done: false, upcoming: false },
+  closed: { label: "Closed", done: true, upcoming: false },
+  completed: { label: "Completed", done: true, upcoming: false },
+  cancelled: { label: "Cancelled", done: false, upcoming: false },
+};
+
 const TASK_STATUS_META = {
-  todo: { label: "To do", badge: "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400" },
-  in_progress: { label: "In progress", badge: "bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400" },
-  done: { label: "Done", badge: "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400" },
+  todo: { label: "TO DO", badge: "bg-[#F1F2F4] text-[#44546F] dark:bg-slate-800 dark:text-slate-300" },
+  in_progress: { label: "IN PROGRESS", badge: "bg-[#FFF7D6] text-[#946F00] dark:bg-amber-950/30 dark:text-amber-300" },
+  done: { label: "DONE", badge: "bg-[#DCFFF1] text-[#1F845A] dark:bg-emerald-950/30 dark:text-emerald-300" },
 };
 
 const TASK_PRIORITY_META = {
-  high: "bg-red-50 text-red-700 border-red-200 dark:bg-red-950/30 dark:text-red-400 dark:border-red-900/40",
-  medium: "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-900/40",
-  low: "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-900/40",
+  high: "bg-[#FFEEF0] text-[#C9372C] dark:bg-red-950/30 dark:text-red-400",
+  medium: "bg-[#FFF7D6] text-[#946F00] dark:bg-amber-950/30 dark:text-amber-400",
+  low: "bg-[#E9F2FF] text-[#0C66E4] dark:bg-blue-950/30 dark:text-blue-400",
 };
 
-const Dashboard = ({ user }) => {
+const Dashboard = ({ user, onNavigate }) => {
   const { theme } = useTheme();
   const isDark = theme === "dark";
   const currentUser = user || authAPI.getStoredUser() || {};
@@ -248,23 +259,64 @@ const Dashboard = ({ user }) => {
   const inProgressTasks = tasks.filter((t) => t.status === "in_progress").length;
   const doneTasks = tasks.filter((t) => t.status === "done").length;
 
-  // Chart data for Project Progress
-  const projectProgressData = [
-    { name: "Completed", value: completedProjects, color: "#4f46e5" },
-    { name: "In progress", value: inProgressProjects, color: "#60a5fa" },
-    {
-      name: "Not started",
-      value: totalProjects - completedProjects - inProgressProjects,
-      color: isDark ? "#334155" : "#e2e8f0",
-    },
-  ].filter((item) => item.value > 0);
+  const notStartedProjects = Math.max(0, totalProjects - completedProjects - inProgressProjects);
+  const completionRate = totalProjects > 0 ? Math.round((completedProjects / totalProjects) * 100) : 0;
+  const taskCompletionRate = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
+  const ringPercent = isManager ? completionRate : taskCompletionRate;
 
-  // Chart data for Task Overview
-  const taskOverviewData = [
-    { name: "To do", value: todoTasks || Math.ceil(totalProjects * 0.5), color: isDark ? "#475569" : "#cbd5e1" },
-    { name: "In progress", value: inProgressTasks || Math.ceil(totalProjects * 0.25), color: "#f59e0b" },
-    { name: "Done", value: doneTasks || Math.ceil(totalProjects * 0.25), color: "#10b981" },
-  ].filter((item) => item.value > 0);
+  const projectProgressData = [
+    { name: "Completed", value: completedProjects, color: "#1F845A" },
+    { name: "In progress", value: inProgressProjects, color: "#0C66E4" },
+    { name: "Not started", value: notStartedProjects, color: isDark ? "#334155" : "#DCDFE4" },
+  ];
+
+  const ringSlices = projectProgressData.filter((item) => item.value > 0);
+  const donutData = ringSlices.length
+    ? ringSlices
+    : [{ name: "Empty", value: 1, color: isDark ? "#1e293b" : "#e2e8f0" }];
+
+  const formatShortDate = (value) => {
+    if (!value) return "No date";
+    return new Date(value).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  };
+
+  const timeAgo = (value) => {
+    if (!value) return "";
+    const diff = Date.now() - new Date(value).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 60) return `${Math.max(1, mins)} min ago`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `${hours} hour${hours === 1 ? "" : "s"} ago`;
+    const days = Math.floor(hours / 24);
+    return `${days} day${days === 1 ? "" : "s"} ago`;
+  };
+
+  const timelineItems = [...projects]
+    .sort((a, b) => {
+      const aDate = new Date(a.due_date || a.created_at || 0).getTime();
+      const bDate = new Date(b.due_date || b.created_at || 0).getTime();
+      return aDate - bDate;
+    })
+    .map((project) => ({
+      id: project.id,
+      title: project.summary,
+      date: project.due_date || project.created_at,
+      status: project.status,
+    }));
+
+  const activityItems = [...projects]
+    .sort((a, b) => new Date(b.updated_at || b.created_at || 0) - new Date(a.updated_at || a.created_at || 0))
+    .slice(0, 4)
+    .map((project) => ({
+      id: project.id,
+      title: project.summary,
+      status: project.status,
+      at: project.updated_at || project.created_at,
+      who: project.reporter || project.creator?.full_name || project.creator?.username || currentUser?.username || "",
+    }));
+
+  const cardClass =
+    "rounded border border-[#DCDFE4] bg-white dark:border-slate-800 dark:bg-slate-900";
 
   const foundProject = isEditMode
     ? projects.find((p) => p.id === editingProjectId)
@@ -273,14 +325,14 @@ const Dashboard = ({ user }) => {
   const tooltipStyles = {
     contentStyle: {
       backgroundColor: isDark ? "#0f172a" : "#ffffff",
-      borderColor: isDark ? "#334155" : "#e2e8f0",
-      color: isDark ? "#f1f5f9" : "#0f172a",
-      borderRadius: "8px",
+      borderColor: isDark ? "#334155" : "#DCDFE4",
+      color: isDark ? "#f1f5f9" : "#172B4D",
+      borderRadius: "3px",
       fontSize: "12px",
-      boxShadow: "0 4px 12px rgba(0, 0, 0, 0.08)",
+      boxShadow: "0 1px 4px rgba(9, 30, 66, 0.13)",
     },
     itemStyle: {
-      color: isDark ? "#f1f5f9" : "#0f172a",
+      color: isDark ? "#f1f5f9" : "#172B4D",
     },
   };
 
@@ -290,82 +342,87 @@ const Dashboard = ({ user }) => {
 
       {/* Error Alert */}
       {error && (
-        <div className="mb-6 flex gap-3 rounded-md bg-red-50 dark:bg-red-950/30 px-4 py-3 border border-red-200 dark:border-red-900">
-          <AlertCircle className="h-4 w-4 text-red-500 flex-shrink-0 mt-0.5" />
-          <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
+        <div className="mb-5 flex gap-3 rounded border border-[#FFD2D2] bg-[#FFEEF0] px-3 py-2.5 dark:border-red-900 dark:bg-red-950/30">
+          <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#C9372C]" />
+          <p className="text-[13px] text-[#C9372C] dark:text-red-300">{error}</p>
         </div>
       )}
 
-      {/* Success Alert */}
       {successMessage && (
-        <div className="mb-6 flex gap-3 rounded-md bg-emerald-50 dark:bg-emerald-950/30 px-4 py-3 border border-emerald-200 dark:border-emerald-900">
-          <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400 flex-shrink-0 mt-0.5" />
-          <p className="text-sm text-emerald-700 dark:text-emerald-300">{successMessage}</p>
+        <div className="mb-5 flex gap-3 rounded border border-[#BAF3DB] bg-[#DCFFF1] px-3 py-2.5 dark:border-emerald-900 dark:bg-emerald-950/30">
+          <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#1F845A]" />
+          <p className="text-[13px] text-[#1F845A] dark:text-emerald-300">{successMessage}</p>
         </div>
       )}
 
       {/* Stats Cards - 4 Column Grid */}
-      <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {isManager ? (
           <>
             <StatCard
-              title="Total projects"
+              title="Total Projects"
               value={totalProjects}
-              description="Created portfolio"
               icon={LayoutDashboard}
               color="indigo"
+              hint="Active workspace portfolio"
+              progress={totalProjects > 0 ? 100 : 0}
             />
             <StatCard
               title="Completed"
               value={completedProjects}
-              description="Finished projects"
               icon={CheckCircle2}
               color="emerald"
+              hint={totalProjects > 0 ? `${completionRate}% of all projects` : "No projects yet"}
+              progress={completionRate}
             />
             <StatCard
-              title="In progress"
+              title="In Progress"
               value={inProgressProjects}
-              description="Active delivery"
               icon={Clock3}
               color="amber"
+              hint={totalProjects > 0 ? `${Math.round((inProgressProjects / totalProjects) * 100)}% currently shipping` : "No projects yet"}
+              progress={totalProjects > 0 ? (inProgressProjects / totalProjects) * 100 : 0}
             />
             <StatCard
-              title="Team members"
+              title="Team Members"
               value={activeTeamMembers}
-              description="Database assignees"
               icon={Users}
               color="violet"
+              hint="People linked to projects"
             />
           </>
         ) : (
           <>
             <StatCard
-              title="Assigned projects"
+              title="Assigned Projects"
               value={totalProjects}
-              description="Assigned by manager"
               icon={LayoutDashboard}
               color="indigo"
+              hint="In your workspace"
+              progress={totalProjects > 0 ? 100 : 0}
             />
             <StatCard
-              title="Assigned tasks"
+              title="Assigned Tasks"
               value={totalTasks}
-              description="Total tasks for you"
               icon={CheckSquare}
               color="violet"
+              hint="Total work items"
             />
             <StatCard
-              title="In progress"
+              title="In Progress"
               value={inProgressTasks}
-              description="Currently working on"
               icon={Clock3}
               color="amber"
+              hint={totalTasks > 0 ? `${Math.round((inProgressTasks / totalTasks) * 100)}% of your tasks` : "No tasks yet"}
+              progress={totalTasks > 0 ? (inProgressTasks / totalTasks) * 100 : 0}
             />
             <StatCard
               title="Completed"
               value={doneTasks}
-              description="Successfully finished"
               icon={CheckCircle2}
               color="emerald"
+              hint={totalTasks > 0 ? `${taskCompletionRate}% of your tasks` : "No tasks yet"}
+              progress={taskCompletionRate}
             />
           </>
         )}
@@ -388,40 +445,45 @@ const Dashboard = ({ user }) => {
 
       {/* Pending Invitations */}
       {pendingInvitations.length > 0 && (
-        <div className="mb-8 space-y-3">
-          <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Pending Invitations ({pendingInvitations.length})</h3>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="mb-6 space-y-2">
+          <h3 className="text-[13px] font-semibold text-[#172B4D] dark:text-white">
+            Pending invitations ({pendingInvitations.length})
+          </h3>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {pendingInvitations.map((inv) => (
-              <div key={inv.id} className="relative overflow-hidden rounded-xl border border-indigo-200 dark:border-indigo-800/50 bg-indigo-50/50 dark:bg-indigo-950/20 p-5 shadow-sm transition hover:shadow-md">
-                <div className="absolute right-0 top-0 h-24 w-24 -translate-y-8 translate-x-8 rounded-full bg-indigo-500/10 dark:bg-indigo-500/5 blur-2xl" />
-                
-                <div className="relative">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h4 className="font-semibold text-slate-900 dark:text-white">{inv.project_summary || 'Unknown Project'}</h4>
-                      <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                        Invited by <span className="font-medium text-slate-700 dark:text-slate-300">{inv.inviter_name || 'Unknown User'}</span> as {inv.role}
-                      </p>
-                    </div>
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-100 dark:bg-indigo-900/50">
-                      <LayoutDashboard className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
-                    </div>
+              <div key={inv.id} className="rounded border border-[#DCDFE4] bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <h4 className="text-[14px] font-medium text-[#172B4D] dark:text-white">
+                      {inv.project_summary || "Unknown Project"}
+                    </h4>
+                    <p className="mt-1 text-[12px] text-[#626F86] dark:text-slate-400">
+                      Invited by{" "}
+                      <span className="font-medium text-[#44546F] dark:text-slate-300">
+                        {inv.inviter_name || "Unknown User"}
+                      </span>{" "}
+                      as {inv.role}
+                    </p>
                   </div>
-                  
-                  <div className="mt-5 flex items-center gap-3">
-                    <button
-                      onClick={() => handleAcceptInvitation(inv.token)}
-                      className="flex-1 rounded-lg bg-indigo-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-700"
-                    >
-                      Accept
-                    </button>
-                    <button
-                      onClick={() => handleDeclineInvitation(inv.id)}
-                      className="flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
-                    >
-                      Decline
-                    </button>
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded bg-[#E9F2FF] dark:bg-blue-500/15">
+                    <LayoutDashboard className="h-3.5 w-3.5 text-[#0C66E4]" />
                   </div>
+                </div>
+                <div className="mt-4 flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleAcceptInvitation(inv.token)}
+                    className="flex-1 rounded bg-[#0C66E4] px-3 py-1.5 text-[13px] font-medium text-white hover:bg-[#0055CC]"
+                  >
+                    Accept
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDeclineInvitation(inv.id)}
+                    className="flex-1 rounded border border-[#DCDFE4] bg-white px-3 py-1.5 text-[13px] font-medium text-[#44546F] hover:bg-[#F1F2F4] dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+                  >
+                    Decline
+                  </button>
                 </div>
               </div>
             ))}
@@ -430,7 +492,7 @@ const Dashboard = ({ user }) => {
       )}
 
       {/* Main Content - Table and Performance */}
-      <div className="mb-8 grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+      <div className="mb-6 grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
         {/* Projects Table */}
         <div>
           <ProjectTable
@@ -439,100 +501,89 @@ const Dashboard = ({ user }) => {
             onEdit={handleEditProject}
             isLoading={loading}
             user={user}
+            onViewAll={() => onNavigate?.("Projects")}
           />
         </div>
 
         {/* Performance Overview Sidebar */}
-        <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5">
-          <div className="mb-5 flex items-center justify-between">
-            <div>
-              <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Performance overview</h3>
-              <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
-                {isManager ? "Project completion rate" : "Task completion rate"}
-              </p>
-            </div>
-            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-indigo-50 dark:bg-indigo-950/40">
-              <TrendingUp className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
-            </div>
-          </div>
+        <div className={`${cardClass} p-4`}>
+          <h3 className="text-[14px] font-semibold text-[#172B4D] dark:text-white">Team performance</h3>
+          <p className="mt-0.5 text-[12px] text-[#626F86] dark:text-slate-400">Completion across the workspace</p>
 
           {totalProjects > 0 || totalTasks > 0 ? (
             <>
-              <div className="mb-5">
-                <p className="text-3xl font-semibold text-slate-900 dark:text-white">
-                  {isManager
-                    ? `${totalProjects > 0 ? Math.round((completedProjects / totalProjects) * 100) : 0}%`
-                    : `${totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0}%`}
-                </p>
-                <div className="mt-1.5 flex items-center gap-1 text-xs font-medium text-emerald-600 dark:text-emerald-400">
-                  <ArrowUpRight className="h-3.5 w-3.5" />
-                  {isManager
-                    ? `${totalProjects > 0 ? ((completedProjects / totalProjects) * 100).toFixed(1) : 0}% completed`
-                    : `${totalTasks > 0 ? ((doneTasks / totalTasks) * 100).toFixed(1) : 0}% tasks done`}
+              <div className="relative mx-auto mt-2 h-[190px] w-full max-w-[220px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={donutData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={58}
+                      outerRadius={78}
+                      paddingAngle={2}
+                      dataKey="value"
+                      stroke="none"
+                    >
+                      {donutData.map((entry, index) => (
+                        <Cell key={`perf-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip {...tooltipStyles} />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+                  <span className="text-2xl font-semibold tracking-tight text-[#172B4D] dark:text-white">
+                    {ringPercent}%
+                  </span>
+                  <span className="text-[11px] font-medium text-[#626F86]">Done</span>
                 </div>
               </div>
-
-              <div className="space-y-2.5 pt-4 border-t border-slate-100 dark:border-slate-800">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-slate-600 dark:text-slate-400">
-                    {isManager ? "Completed projects" : "Completed tasks"}
-                  </span>
-                  <span className="font-medium text-slate-900 dark:text-white">
-                    {isManager ? completedProjects : doneTasks}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-slate-600 dark:text-slate-400">
-                    {isManager ? "In progress projects" : "In progress tasks"}
-                  </span>
-                  <span className="font-medium text-amber-600 dark:text-amber-400">
-                    {isManager ? inProgressProjects : inProgressTasks}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-slate-600 dark:text-slate-400">
-                    {isManager ? "Total projects" : "To do tasks"}
-                  </span>
-                  <span className="font-medium text-slate-900 dark:text-white">
-                    {isManager ? totalProjects : todoTasks}
-                  </span>
-                </div>
+              <div className="mt-1 space-y-2">
+                {projectProgressData.map((item) => (
+                  <div key={item.name} className="flex items-center justify-between text-[13px]">
+                    <div className="flex items-center gap-2">
+                      <span className="h-2 w-2 rounded-sm" style={{ backgroundColor: item.color }} />
+                      <span className="text-[#44546F] dark:text-slate-400">{item.name}</span>
+                    </div>
+                    <span className="font-medium text-[#172B4D] dark:text-white">{item.value}</span>
+                  </div>
+                ))}
               </div>
             </>
           ) : (
-            <p className="text-sm text-slate-500 dark:text-slate-400">No project or task activity yet</p>
+            <p className="py-12 text-center text-[13px] text-[#626F86]">No project or task activity yet</p>
           )}
         </div>
       </div>
 
-      {/* Tasks Section for Normal User (or overview for Manager) */}
       {!isManager && (
-        <div className="mb-8 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5">
-          <div className="flex items-center justify-between mb-5">
+        <div className={`${cardClass} mb-6 p-4`}>
+          <div className="mb-4 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <CheckSquare className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+              <CheckSquare className="h-4 w-4 text-[#0C66E4]" />
               <div>
-                <h3 className="text-sm font-semibold text-slate-900 dark:text-white">My assigned tasks</h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  Tasks assigned to you by your project manager
+                <h3 className="text-[14px] font-semibold text-[#172B4D] dark:text-white">Assigned to me</h3>
+                <p className="mt-0.5 text-[12px] text-[#626F86] dark:text-slate-400">
+                  Work items assigned to you
                 </p>
               </div>
             </div>
-            <span className="rounded-full bg-indigo-50 dark:bg-indigo-950/40 px-2.5 py-1 text-xs font-medium text-indigo-600 dark:text-indigo-400">
-              {tasks.length} {tasks.length === 1 ? "task" : "tasks"}
+            <span className="rounded bg-[#E9F2FF] px-2 py-0.5 text-[12px] font-medium text-[#0C66E4] dark:bg-blue-950/40 dark:text-blue-300">
+              {tasks.length} {tasks.length === 1 ? "issue" : "issues"}
             </span>
           </div>
 
           {tasks.length === 0 ? (
-            <div className="text-center py-10 border border-dashed border-slate-200 dark:border-slate-800 rounded-lg">
-              <CheckSquare className="h-6 w-6 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
-              <p className="text-sm font-medium text-slate-700 dark:text-slate-300">No tasks assigned yet</p>
-              <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
-                Tasks your project manager assigns to you will appear here.
+            <div className="rounded border border-dashed border-[#DCDFE4] py-10 text-center dark:border-slate-800">
+              <CheckSquare className="mx-auto mb-2 h-5 w-5 text-[#8993A4]" />
+              <p className="text-[13px] font-medium text-[#172B4D] dark:text-slate-300">No issues assigned</p>
+              <p className="mt-0.5 text-[12px] text-[#626F86]">
+                Issues your project manager assigns to you will appear here.
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 gap-2 md:grid-cols-2 lg:grid-cols-3">
               {tasks.map((task) => {
                 const statusMeta = TASK_STATUS_META[task.status] || TASK_STATUS_META.todo;
                 const priorityMeta = TASK_PRIORITY_META[task.priority] || TASK_PRIORITY_META.medium;
@@ -543,81 +594,72 @@ const Dashboard = ({ user }) => {
                 return (
                   <div
                     key={task.id}
-                    className="flex flex-col justify-between rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 p-4 transition-colors hover:border-slate-300 dark:hover:border-slate-700"
+                    className="flex flex-col justify-between rounded border border-[#DCDFE4] bg-white p-3 hover:bg-[#F7F8F9] dark:border-slate-800 dark:bg-slate-950 dark:hover:bg-slate-900"
                   >
                     <div>
-                      <div className="flex items-center justify-between mb-2.5">
-                        <span
-                          className={`rounded-full border px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide ${priorityMeta}`}
-                        >
+                      <div className="mb-2 flex items-center justify-between">
+                        <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${priorityMeta}`}>
                           {task.priority || "medium"}
                         </span>
-                        <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${statusMeta.badge}`}>
+                        <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold tracking-wide ${statusMeta.badge}`}>
                           {statusMeta.label}
                         </span>
                       </div>
-
-                      <h4 className="text-sm font-medium text-slate-900 dark:text-white mb-1.5 leading-snug">
+                      <p className="mb-1 font-mono text-[11px] text-[#626F86]">AERO-{task.id}</p>
+                      <h4 className="mb-1.5 text-[13px] font-medium leading-snug text-[#172B4D] dark:text-white">
                         {task.summary}
                       </h4>
-
                       {task.description && (
-                        <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 mb-3 leading-relaxed">
+                        <p className="mb-3 line-clamp-2 text-[12px] leading-relaxed text-[#626F86] dark:text-slate-400">
                           {task.description}
                         </p>
                       )}
-
-                      <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 mt-2">
+                      <div className="mt-2 flex items-center gap-1.5 text-[12px] text-[#626F86] dark:text-slate-400">
                         <Calendar className="h-3.5 w-3.5" />
-                        <span>{task.due_date ? new Date(task.due_date).toLocaleDateString() : "No deadline"}</span>
+                        <span>{task.due_date ? new Date(task.due_date).toLocaleDateString() : "No due date"}</span>
                       </div>
-
                       {task.creator && (
-                        <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
-                          Assigned by{" "}
-                          <span className="font-medium text-slate-600 dark:text-slate-300">
+                        <p className="mt-1 text-[12px] text-[#8993A4] dark:text-slate-500">
+                          Reporter{" "}
+                          <span className="font-medium text-[#44546F] dark:text-slate-300">
                             {task.creator.full_name || task.creator.username}
                           </span>
                         </p>
                       )}
                     </div>
-
-                    {/* Quick status changers */}
-                    <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center gap-1.5">
+                    <div className="mt-3 flex items-center gap-1 border-t border-[#F1F2F4] pt-3 dark:border-slate-800">
                       <button
                         type="button"
                         onClick={() => handleQuickTaskStatus(task.id, "todo")}
                         disabled={isTodo}
-                        className={`px-2 py-1 rounded text-[11px] font-medium transition-colors disabled:cursor-default ${
+                        className={`rounded px-2 py-1 text-[11px] font-medium disabled:cursor-default ${
                           isTodo
-                            ? "bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-white"
-                            : "bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800"
+                            ? "bg-[#F1F2F4] text-[#172B4D] dark:bg-slate-800 dark:text-white"
+                            : "text-[#44546F] hover:bg-[#F1F2F4] dark:text-slate-400 dark:hover:bg-slate-800"
                         }`}
                       >
                         To do
                       </button>
-
                       <button
                         type="button"
                         onClick={() => handleQuickTaskStatus(task.id, "in_progress")}
                         disabled={isInProgress}
-                        className={`px-2 py-1 rounded text-[11px] font-medium transition-colors disabled:cursor-default ${
+                        className={`rounded px-2 py-1 text-[11px] font-medium disabled:cursor-default ${
                           isInProgress
-                            ? "bg-amber-100 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300"
-                            : "bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-950/40"
+                            ? "bg-[#FFF7D6] text-[#946F00] dark:bg-amber-950/50 dark:text-amber-300"
+                            : "text-[#946F00] hover:bg-[#FFF7D6] dark:text-amber-400 dark:hover:bg-amber-950/40"
                         }`}
                       >
                         In progress
                       </button>
-
                       <button
                         type="button"
                         onClick={() => handleQuickTaskStatus(task.id, "done")}
                         disabled={isDone}
-                        className={`px-2 py-1 rounded text-[11px] font-medium transition-colors disabled:cursor-default ${
+                        className={`rounded px-2 py-1 text-[11px] font-medium disabled:cursor-default ${
                           isDone
-                            ? "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300"
-                            : "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-950/40"
+                            ? "bg-[#DCFFF1] text-[#1F845A] dark:bg-emerald-950/50 dark:text-emerald-300"
+                            : "text-[#1F845A] hover:bg-[#DCFFF1] dark:text-emerald-400 dark:hover:bg-emerald-950/40"
                         }`}
                       >
                         Done
@@ -631,30 +673,26 @@ const Dashboard = ({ user }) => {
         </div>
       )}
 
-      {/* Bottom Charts Section - 3 Columns */}
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-        {/* Project Progress Chart */}
-        <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5">
-          <div className="mb-5">
-            <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Project progress</h3>
-            <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">Overall progress across all projects</p>
-          </div>
-
-          {projectProgressData.length > 0 ? (
-            <div className="flex justify-center">
-              <ResponsiveContainer width="100%" height={180}>
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <div className={`${cardClass} p-4`}>
+          <h3 className="text-[14px] font-semibold text-[#172B4D] dark:text-white">Project progress</h3>
+          <p className="mt-0.5 text-[12px] text-[#626F86]">Overall mix across all projects</p>
+          {ringSlices.length > 0 ? (
+            <div className="relative mx-auto mt-2 h-[170px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
-                    data={projectProgressData}
+                    data={donutData}
                     cx="50%"
                     cy="50%"
-                    innerRadius={55}
-                    outerRadius={80}
+                    innerRadius={48}
+                    outerRadius={68}
                     paddingAngle={2}
                     dataKey="value"
+                    stroke="none"
                   >
-                    {projectProgressData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    {donutData.map((entry, index) => (
+                      <Cell key={`prog-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
                   <Tooltip {...tooltipStyles} />
@@ -663,101 +701,119 @@ const Dashboard = ({ user }) => {
             </div>
           ) : (
             <div className="flex h-40 items-center justify-center">
-              <p className="text-sm text-slate-400 dark:text-slate-500">No data available</p>
+              <p className="text-[13px] text-[#8993A4]">No data available</p>
             </div>
           )}
-
-          <div className="mt-5 space-y-2.5 pt-5 border-t border-slate-100 dark:border-slate-800">
-            {projectProgressData.map((item, idx) => (
-              <div key={idx} className="flex items-center justify-between text-sm">
+          <div className="space-y-2 pt-1">
+            {projectProgressData.map((item) => (
+              <div key={item.name} className="flex items-center justify-between text-[13px]">
                 <div className="flex items-center gap-2">
-                  <span className="h-2 w-2 rounded-full" style={{ backgroundColor: item.color }} />
-                  <span className="text-slate-600 dark:text-slate-400">{item.name}</span>
+                  <span className="h-2 w-2 rounded-sm" style={{ backgroundColor: item.color }} />
+                  <span className="text-[#44546F]">{item.name}</span>
                 </div>
-                <span className="font-medium text-slate-900 dark:text-white">{item.value}</span>
+                <span className="font-medium text-[#172B4D] dark:text-white">{item.value}</span>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Task Overview Chart */}
-        <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5">
-          <div className="mb-5">
-            <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Task overview</h3>
-            <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">Task distribution by status</p>
-          </div>
-
-          {taskOverviewData.length > 0 ? (
-            <div className="flex justify-center">
-              <ResponsiveContainer width="100%" height={180}>
-                <PieChart>
-                  <Pie
-                    data={taskOverviewData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={55}
-                    outerRadius={80}
-                    paddingAngle={2}
-                    dataKey="value"
-                  >
-                    {taskOverviewData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip {...tooltipStyles} />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          ) : (
-            <div className="flex h-40 items-center justify-center">
-              <p className="text-sm text-slate-400 dark:text-slate-500">No data available</p>
-            </div>
-          )}
-
-          <div className="mt-5 space-y-2.5 pt-5 border-t border-slate-100 dark:border-slate-800">
-            {taskOverviewData.map((item, idx) => (
-              <div key={idx} className="flex items-center justify-between text-sm">
-                <div className="flex items-center gap-2">
-                  <span className="h-2 w-2 rounded-full" style={{ backgroundColor: item.color }} />
-                  <span className="text-slate-600 dark:text-slate-400">{item.name}</span>
-                </div>
-                <span className="font-medium text-slate-900 dark:text-white">{item.value}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Recent Activity */}
-        <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5">
-          <div className="mb-5 flex items-center justify-between">
-            <div>
-              <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Recent activity</h3>
-              <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">Latest updates from your projects</p>
-            </div>
-            <Activity className="h-4 w-4 text-slate-400 dark:text-slate-500" />
-          </div>
-
-          {projects.length > 0 ? (
-            <div className="space-y-3.5">
-              {projects.slice(0, 4).map((project) => {
-                const dotColor =
-                  project.status === "in_progress"
-                    ? "text-indigo-500"
-                    : project.status === "closed" || project.status === "completed"
-                    ? "text-emerald-500"
-                    : "text-amber-500";
+        <div className={`${cardClass} p-4`}>
+          <h3 className="text-[14px] font-semibold text-[#172B4D] dark:text-white">Project timeline</h3>
+          <p className="mt-0.5 text-[12px] text-[#626F86]">Projects ordered by due date</p>
+          {timelineItems.length ? (
+            <div className="relative mt-4 space-y-4 pl-3">
+              <div className="absolute bottom-1 left-[7px] top-1 w-px bg-[#DCDFE4] dark:bg-slate-800" />
+              {timelineItems.map((item) => {
+                const meta = PROJECT_STATUS_META[item.status] || {
+                  label: item.status || "Unknown",
+                  done: false,
+                  upcoming: false,
+                };
                 return (
-                  <div
-                    key={project.id}
-                    className="flex gap-3 pb-3.5 border-b border-slate-100 dark:border-slate-800 last:border-0 last:pb-0"
-                  >
-                    <Circle className={`h-2 w-2 mt-1.5 flex-shrink-0 fill-current ${dotColor}`} strokeWidth={0} />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-slate-900 dark:text-white truncate">
-                        {project.summary}
+                  <div key={item.id} className="relative pl-5">
+                    <span
+                      className={`absolute left-0 top-1.5 h-2 w-2 rounded-sm ring-4 ring-white dark:ring-slate-900 ${
+                        meta.done
+                          ? "bg-[#1F845A]"
+                          : item.status === "in_progress" || item.status === "active"
+                            ? "bg-[#0C66E4]"
+                            : "bg-[#E2B203]"
+                      }`}
+                    />
+                    <p className="text-[13px] font-medium text-[#172B4D] dark:text-white">{item.title}</p>
+                    <div className="mt-0.5 flex items-center justify-between gap-2">
+                      <p className="text-[12px] text-[#8993A4]">{formatShortDate(item.date)}</p>
+                      <span
+                        className={`text-[10px] font-bold uppercase ${
+                          meta.done
+                            ? "text-[#1F845A]"
+                            : item.status === "in_progress" || item.status === "active"
+                              ? "text-[#0C66E4]"
+                              : "text-[#946F00]"
+                        }`}
+                      >
+                        {meta.label}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="py-10 text-center text-[13px] text-[#8993A4]">No projects yet</p>
+          )}
+        </div>
+
+        <div className={`${cardClass} p-4`}>
+          <h3 className="text-[14px] font-semibold text-[#172B4D] dark:text-white">Shortcuts</h3>
+          <p className="mt-0.5 text-[12px] text-[#626F86]">Jump to everyday workflows</p>
+          <div className="mt-3 space-y-1">
+            {[
+              { label: "Create project", icon: Plus, action: handleCreateProject },
+              { label: "Manage team", icon: Users, action: () => onNavigate?.("Team") },
+              { label: "Open calendar", icon: CalendarDays, action: () => onNavigate?.("Calendar") },
+              { label: "View reports", icon: BarChart3, action: () => onNavigate?.("Reports") },
+            ].map((item) => {
+              const Icon = item.icon;
+              return (
+                <button
+                  key={item.label}
+                  type="button"
+                  onClick={item.action}
+                  className="flex w-full items-center gap-2.5 rounded px-2 py-2 text-left text-[13px] font-medium text-[#44546F] hover:bg-[#F1F2F4] dark:text-slate-300 dark:hover:bg-slate-800"
+                >
+                  <Icon className="h-4 w-4 text-[#0C66E4]" />
+                  {item.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className={`${cardClass} p-4`}>
+          <div className="mb-3 flex items-center justify-between">
+            <div>
+              <h3 className="text-[14px] font-semibold text-[#172B4D] dark:text-white">Activity</h3>
+              <p className="mt-0.5 text-[12px] text-[#626F86]">Latest updates from your projects</p>
+            </div>
+            <Activity className="h-4 w-4 text-[#8993A4]" />
+          </div>
+          {activityItems.length ? (
+            <div className="space-y-3">
+              {activityItems.map((item) => {
+                const meta = PROJECT_STATUS_META[item.status] || { label: item.status || "Unknown" };
+                return (
+                  <div key={item.id} className="flex gap-2.5">
+                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#E9F2FF] text-[11px] font-semibold text-[#0C66E4] dark:bg-blue-500/15 dark:text-blue-300">
+                      {item.who ? String(item.who).charAt(0).toUpperCase() : "P"}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="truncate text-[13px] leading-5 text-[#172B4D] dark:text-slate-200">
+                        {item.title}
                       </p>
-                      <p className="mt-0.5 text-xs text-slate-400 dark:text-slate-500">
-                        {new Date(project.created_at).toLocaleDateString()}
+                      <p className="mt-0.5 text-[11px] text-[#8993A4]">
+                        {meta.label}
+                        {item.at ? ` · ${timeAgo(item.at)}` : ""}
                       </p>
                     </div>
                   </div>
@@ -765,15 +821,8 @@ const Dashboard = ({ user }) => {
               })}
             </div>
           ) : (
-            <p className="text-sm text-slate-500 dark:text-slate-400">No activity yet</p>
+            <p className="py-10 text-center text-[13px] text-[#8993A4]">No activity yet</p>
           )}
-
-          <button
-            type="button"
-            className="mt-5 w-full rounded-md border border-slate-200 dark:border-slate-800 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 transition-colors hover:bg-slate-50 dark:hover:bg-slate-800"
-          >
-            View all activity
-          </button>
         </div>
       </div>
     </>

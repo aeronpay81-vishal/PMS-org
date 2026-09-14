@@ -8,6 +8,7 @@ import Feature from './pages/Feature'
 import HowItWork from './pages/HowItWork'
 import Pricing from './pages/Pricing'
 import Faq from './pages/Faq'
+import Contact from './pages/Contact'
 function App() {
   const [auth, setAuth] = useState(() => {
     const storedUser = authAPI.getStoredUser()
@@ -54,6 +55,7 @@ function App() {
         <Route path="/how-it-works" element={<HowItWork />} />
         <Route path="/pricing" element={<Pricing />} />
         <Route path="/faq" element={<Faq />} />
+        <Route path="/contact" element={<Contact />} />
 
         {/* Catch all - Redirect to home */}
         <Route path="*" element={<Navigate to="/" replace />} />

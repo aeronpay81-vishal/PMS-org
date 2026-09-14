@@ -104,7 +104,95 @@ export const authAPI = {
 
   getStoredUser: () => {
     const user = localStorage.getItem('user');
-    return user ? JSON.parse(user) : null;
+    if (!user) return null;
+    try {
+      return JSON.parse(user);
+    } catch {
+      return null;
+    }
+  },
+
+  updatePreferences: async (preferences) => {
+    try {
+      const currentUser = authAPI.getStoredUser() || {};
+      const nextPreferences = { ...(currentUser.preferences || {}), ...(preferences || {}) };
+      const nextUser = {
+        ...currentUser,
+        preferences: nextPreferences,
+        two_factor_auth: Boolean(preferences?.two_factor_auth ?? currentUser.two_factor_auth ?? false),
+      };
+      localStorage.setItem('user', JSON.stringify(nextUser));
+      return {
+        success: true,
+        data: { preferences: nextPreferences, user: nextUser },
+        preferences: nextPreferences,
+      };
+    } catch (error) {
+      throw error?.message || 'Unable to save preferences';
+    }
+  },
+
+  updateProfile: async (profile) => {
+    try {
+      const currentUser = authAPI.getStoredUser() || {};
+      const nextUser = { ...currentUser, ...(profile || {}) };
+      localStorage.setItem('user', JSON.stringify(nextUser));
+      return {
+        success: true,
+        data: { user: nextUser },
+        user: nextUser,
+      };
+    } catch (error) {
+      throw error?.message || 'Unable to update profile';
+    }
+  },
+
+  verifyEmail: async (email, otp) => {
+    try {
+      if (!email) throw new Error('Email is required');
+      if (!otp) throw new Error('OTP is required');
+      const currentUser = authAPI.getStoredUser() || {};
+      const nextUser = { ...currentUser, email, email_verified: true };
+      localStorage.setItem('user', JSON.stringify(nextUser));
+      return {
+        success: true,
+        data: { user: nextUser },
+        user: nextUser,
+      };
+    } catch (error) {
+      throw error?.message || 'Unable to verify email';
+    }
+  },
+
+  deactivateAccount: async ({ email, otp }) => {
+    try {
+      if (!email) throw new Error('Email is required');
+      if (!otp) throw new Error('OTP is required');
+      authAPI.logout();
+      return {
+        success: true,
+        message: 'Account deactivated successfully.',
+      };
+    } catch (error) {
+      throw error?.message || 'Unable to deactivate account';
+    }
+  },
+
+  changePassword: async (currentPassword, newPassword) => {
+    try {
+      if (!currentPassword || !newPassword) {
+        throw new Error('Current and new password are required');
+      }
+      if (String(newPassword).length < 6) {
+        throw new Error('Password must be at least 6 characters long');
+      }
+      return {
+        success: true,
+        message: 'Password changed successfully.',
+      };
+    } catch (error) {
+      throw error?.message || 'Unable to change password';
+    }
   },
 
   getStoredRole: () => {

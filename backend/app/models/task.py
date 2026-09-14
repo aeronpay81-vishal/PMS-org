@@ -21,10 +21,12 @@ class Task(db.Model):
     attachment = db.Column(db.String(255), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
 
     user = db.relationship('User', foreign_keys=[user_id], backref='tasks_created')
     assignee = db.relationship('User', foreign_keys=[assigned_to], backref='tasks_assigned')
     project = db.relationship('Project', foreign_keys=[project_id], backref=db.backref('tasks', cascade='all, delete-orphan', lazy=True))
+    subtasks = db.relationship('Subtask', back_populates='task', cascade='all, delete-orphan', lazy=True)
 
     def to_dict(self):
         return {
@@ -62,4 +64,5 @@ class Task(db.Model):
             'attachment': self.attachment,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,
+            'subtasks': [subtask.to_dict() for subtask in self.subtasks],
         }

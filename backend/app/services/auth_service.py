@@ -1,6 +1,6 @@
 
 from app import db
-from app.models import User
+from app.models import User, ProjectMember
 from flask_jwt_extended import create_access_token, create_refresh_token
 from sqlalchemy.exc import IntegrityError
 from datetime import datetime
@@ -203,4 +203,21 @@ class AuthService:
             query = query.filter_by(role=role.lower().strip())
         
         users = query.order_by(User.full_name.asc(), User.username.asc()).all()
-        return [user.to_dict() for user in users]
+        user_ids = [user.id for user in users]
+        memberships = ProjectMember.query.filter(ProjectMember.user_id.in_(user_ids)).all() if user_ids else []
+        project_roles = {user_id: [] for user_id in user_ids}
+
+        for membership in memberships:
+            project_roles[membership.user_id].append({
+                'project_id': membership.project_id,
+                'project_name': membership.project.summary if membership.project else f'Project #{membership.project_id}',
+                'role': membership.role,
+            })
+
+        result = []
+        for user in users:
+            user_data = user.to_dict()
+            user_data['project_roles'] = project_roles[user.id]
+            result.append(user_data)
+
+        return result

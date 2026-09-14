@@ -1,24 +1,36 @@
-import Login from './Login'
-import Feature from './Feature'
-import HowItWork from './HowItWork'
-import Pricing from './Pricing'
-import Faq from './Faq'
+import Login from "./Login";
+import Feature from "./Feature";
+import HowItWork from "./HowItWork";
+import Pricing from "./Pricing";
+import Faq from "./Faq";
+import Contact from "./Contact";
+import Footer from "./Footer";
 
 const Home = ({ onLogin }) => (
-  <main>
+  <main className="bg-[#F7F8F9]">
     <Login onLogin={onLogin} showFooter={false} />
+    <div className="h-px bg-[#DCDFE4]" />
     <section id="features">
       <Feature showChrome={false} />
     </section>
+    <div className="h-px bg-[#DCDFE4]" />
     <section id="how-it-works">
       <HowItWork showChrome={false} />
     </section>
+    <div className="h-px bg-[#DCDFE4]" />
     <section id="pricing">
       <Pricing showChrome={false} />
     </section>
+    <div className="h-px bg-[#DCDFE4]" />
     <section id="faq">
       <Faq showChrome={false} />
     </section>
+    <div className="h-px bg-[#DCDFE4]" />
+    <section id="contact">
+      <Contact showChrome={false} />
+    </section>
+    <Footer />
   </main>
-)
-export default Home
+);
+
+export default Home;

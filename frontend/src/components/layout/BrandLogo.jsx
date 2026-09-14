@@ -1,40 +1,26 @@
-import { Rocket } from "lucide-react";
-
 const BrandLogo = ({ collapsed = false, isDark = false }) => {
-  const titleColor = isDark ? "#E2E8F0" : "#0F172A";
-  const subtitleColor = isDark ? "#64748B" : "#94A3B8";
+  const titleColor = isDark ? "#F8FAFC" : "#172B4D";
+  const subtitleColor = isDark ? "#9AA8BC" : "#626F86";
 
   return (
-    <div className="flex min-w-0 items-center gap-3">
+    <div className="flex min-w-0 items-center gap-2.5">
       <div
-        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl shadow-[0_8px_20px_-6px_rgba(37,99,235,0.55)]"
-        style={{
-          background: "linear-gradient(135deg, #4F7DF7 0%, #2563EB 100%)",
-        }}
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded"
+        style={{ background: "#0C66E4" }}
       >
-        <Rocket
-          style={{
-            width: 18,
-            height: 18,
-            color: "#FFFFFF",
-            transform: "rotate(-18deg)",
-          }}
-        />
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <path d="M8 1.5L14.5 8L8 14.5L1.5 8L8 1.5Z" fill="white" />
+          <path d="M8 5.2L10.8 8L8 10.8L5.2 8L8 5.2Z" fill="#0C66E4" />
+        </svg>
       </div>
 
       {!collapsed && (
         <div className="overflow-hidden leading-tight">
-          <p
-            className="truncate text-[18px] font-bold tracking-[-0.02em]"
-            style={{ color: titleColor }}
-          >
+          <p className="truncate text-[15px] font-semibold tracking-tight" style={{ color: titleColor }}>
             AeroPilot
           </p>
-          <p
-            className="text-[9px] font-semibold uppercase tracking-[0.22em]"
-            style={{ color: subtitleColor }}
-          >
-            Project Management
+          <p className="text-[10px] font-medium tracking-wide" style={{ color: subtitleColor }}>
+            Work management
           </p>
         </div>
       )}

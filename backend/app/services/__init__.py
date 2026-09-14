@@ -7,5 +7,6 @@ from app.services.task_comment_service import TaskCommentService
 from app.services.task_activity_service import TaskActivityService
 from app.services.time_entry_service import TimeEntryService
 from app.services.analytics_service import AnalyticsService
+from app.services.subtask_service import SubtaskService
 
-__all__ = ['AuthService', 'ProjectService', 'TaskService', 'InvitationService', 'NotificationService', 'TaskCommentService', 'TaskActivityService', 'TimeEntryService', 'AnalyticsService']
+__all__ = ['AuthService', 'ProjectService', 'TaskService', 'SubtaskService', 'InvitationService', 'NotificationService', 'TaskCommentService', 'TaskActivityService', 'TimeEntryService', 'AnalyticsService']

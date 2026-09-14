@@ -42,6 +42,17 @@ def login():
     return jsonify(response), status_code
 
 
+@auth_bp.route('/send-otp', methods=['POST'])
+def send_otp():
+    response, status_code = AuthController.send_otp()
+    return jsonify(response), status_code
+
+@auth_bp.route('/verify-otp', methods=['POST'])
+def verify_otp():
+    response, status_code = AuthController.verify_otp()
+    return jsonify(response), status_code
+
+
 @auth_bp.route('/refresh', methods=['POST'])
 @jwt_required(refresh=True)
 def refresh():

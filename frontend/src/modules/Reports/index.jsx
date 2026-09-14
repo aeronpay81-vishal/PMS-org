@@ -117,14 +117,18 @@ const Reports = () => {
     }
   };
 
+  const getProjectTasks = (project) => project.tasks || project.assignments || [];
+
   const taskRows = useMemo(() => {
     const rows = [];
     projects.forEach((p) => {
-      const tasks = (p.assignments && p.assignments.length ? p.assignments : p.tasks) || [];
+      const tasks = getProjectTasks(p);
       if (tasks.length === 0) {
         rows.push({
           project: p.summary,
           projectId: p.id,
+          type: "Task",
+          parentTask: "",
           detail: "No tasks yet",
           assignee: "—",
           email: "",
@@ -144,6 +148,8 @@ const Reports = () => {
         rows.push({
           project: p.summary,
           projectId: p.id,
+          type: "Task",
+          parentTask: "",
           detail: t.task_detail || t.description || t.summary || "",
           assignee: t.assignee ? t.assignee.full_name || t.assignee.username : "Unassigned",
           email: t.assignee?.email || "",
@@ -153,6 +159,23 @@ const Reports = () => {
           due,
           duration,
         });
+
+        (t.subtasks || []).forEach((subtask) => {
+          rows.push({
+            project: p.summary,
+            projectId: p.id,
+            type: "Subtask",
+            parentTask: t.summary || t.task_detail || "",
+            detail: subtask.title || subtask.description || "",
+            assignee: t.assignee ? t.assignee.full_name || t.assignee.username : "Unassigned",
+            email: t.assignee?.email || "",
+            priority: t.priority || "",
+            status: subtask.status || "",
+            start: subtask.date,
+            due: subtask.date,
+            duration: "",
+          });
+        });
       });
     });
     return rows;
@@ -160,15 +183,19 @@ const Reports = () => {
 
   const projectsWithProgress = useMemo(() => {
     return projects.map((p) => {
-      const tasks = (p.assignments && p.assignments.length ? p.assignments : p.tasks) || [];
-      const completedCount = tasks.filter((t) =>
+      const tasks = getProjectTasks(p);
+      const subtasks = tasks.flatMap((task) => task.subtasks || []);
+      const workItems = [...tasks, ...subtasks];
+      const completedCount = workItems.filter((t) =>
         ["done", "completed", "closed"].includes((t.status || "").toLowerCase())
       ).length;
       return {
         ...p,
         taskCount: tasks.length,
+        subtaskCount: subtasks.length,
+        workItemCount: workItems.length,
         completedCount,
-        completionPercentage: tasks.length > 0 ? (completedCount / tasks.length) * 100 : 0,
+        completionPercentage: workItems.length > 0 ? (completedCount / workItems.length) * 100 : 0,
       };
     });
   }, [projects]);
@@ -186,8 +213,12 @@ const Reports = () => {
   }, [projectsWithProgress, sortBy]);
 
   const stats = useMemo(() => {
-    const totalTasks = taskRows.filter((r) => r.status).length;
-    const completedTasks = taskRows.filter((r) =>
+    const totalTasks = taskRows.filter((r) => r.status && r.type === "Task").length;
+    const totalSubtasks = taskRows.filter((r) => r.status && r.type === "Subtask").length;
+    const completedTasks = taskRows.filter((r) => r.status && r.type === "Task").filter((r) =>
+      ["done", "completed", "closed"].includes((r.status || "").toLowerCase())
+    ).length;
+    const completedSubtasks = taskRows.filter((r) => r.status && r.type === "Subtask").filter((r) =>
       ["done", "completed", "closed"].includes((r.status || "").toLowerCase())
     ).length;
     const distinctAssignees = new Set(taskRows.map((r) => r.email).filter(Boolean)).size;
@@ -206,7 +237,9 @@ const Reports = () => {
     return {
       totalProjects: projects.length,
       totalTasks,
+      totalSubtasks,
       completedTasks,
+      completedSubtasks,
       distinctAssignees,
       statusCounts,
       avgCompletion: Math.round(avgCompletion),
@@ -248,6 +281,8 @@ const Reports = () => {
       // --- Sheet 2: Tasks ---
       const taskExportRows = taskRows.map((r) => ({
         Project: r.project,
+        Type: r.type,
+        "Parent Task": r.parentTask,
         Task: r.detail,
         "Assigned To": r.assignee,
         Email: r.email,
@@ -259,7 +294,7 @@ const Reports = () => {
       }));
       const wsTasks = XLSX.utils.json_to_sheet(taskExportRows);
       wsTasks["!cols"] = [
-        { wch: 30 }, { wch: 42 }, { wch: 22 }, { wch: 26 },
+        { wch: 30 }, { wch: 12 }, { wch: 30 }, { wch: 42 }, { wch: 22 }, { wch: 26 },
         { wch: 10 }, { wch: 14 }, { wch: 13 }, { wch: 13 }, { wch: 15 },
       ];
       if (wsTasks["!ref"]) wsTasks["!autofilter"] = { ref: wsTasks["!ref"] };
@@ -269,7 +304,9 @@ const Reports = () => {
       const summaryRows = [
         { Metric: "Total projects", Value: stats.totalProjects },
         { Metric: "Total tasks", Value: stats.totalTasks },
+        { Metric: "Total subtasks", Value: stats.totalSubtasks },
         { Metric: "Completed tasks", Value: stats.completedTasks },
+        { Metric: "Completed subtasks", Value: stats.completedSubtasks },
         { Metric: "Average completion %", Value: stats.avgCompletion },
         { Metric: "Distinct assignees", Value: stats.distinctAssignees },
         { Metric: "", Value: "" },
@@ -348,6 +385,13 @@ const Reports = () => {
             sublabel="Assigned"
           />
           <StatCard
+            icon={ListChecks}
+            label="Subtasks"
+            value={stats.totalSubtasks}
+            loading={loading}
+            sublabel={`${stats.completedSubtasks} done`}
+          />
+          <StatCard
             icon={CheckCircle2}
             label="Done"
             value={stats.completedTasks}
@@ -413,7 +457,8 @@ const Reports = () => {
                   <div className="flex-1">
                     <h3 className="font-semibold text-slate-900">{p.summary}</h3>
                     <p className="text-xs text-slate-500 mt-0.5">
-                      {p.completedCount} / {p.taskCount} tasks completed
+                      {p.completedCount} / {p.workItemCount} work items completed
+                      <span className="ml-1 text-slate-400">({p.taskCount} tasks, {p.subtaskCount} subtasks)</span>
                     </p>
                   </div>
                   <span className={`text-sm font-bold px-2.5 py-1 rounded-full ${p.completionPercentage === 100
@@ -460,6 +505,8 @@ const Reports = () => {
               <thead>
                 <tr className="border-b border-slate-200 text-xs font-medium uppercase tracking-wide text-slate-400 bg-slate-50">
                   <th className="px-6 py-3">Project</th>
+                  <th className="px-3 py-3">Type</th>
+                  <th className="px-3 py-3">Parent Task</th>
                   <th className="px-3 py-3">Task</th>
                   <th className="px-3 py-3">Assigned</th>
                   <th className="px-3 py-3">Status</th>
@@ -472,6 +519,12 @@ const Reports = () => {
                   return (
                     <tr key={i} className="hover:bg-slate-50/60 transition-colors">
                       <td className="px-6 py-3 font-medium text-slate-800">{r.project}</td>
+                      <td className="px-3 py-3">
+                        <span className={`rounded-full px-2 py-1 text-[10px] font-semibold ${r.type === "Subtask" ? "bg-indigo-50 text-indigo-600" : "bg-slate-100 text-slate-600"}`}>
+                          {r.type}
+                        </span>
+                      </td>
+                      <td className="px-3 py-3 text-slate-500 max-w-xs truncate">{r.parentTask || "—"}</td>
                       <td className="px-3 py-3 text-slate-600 max-w-xs truncate">{r.detail}</td>
                       <td className="px-3 py-3 text-slate-600 text-sm">{r.assignee}</td>
                       <td className="px-3 py-3">

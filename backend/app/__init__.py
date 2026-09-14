@@ -2,10 +2,12 @@ from flask import Flask, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
+from flask_mail import Mail
 import os
 
 db = SQLAlchemy()
 jwt = JWTManager()
+mail = Mail()
 
 def create_app():
     """Application factory"""
@@ -18,6 +20,7 @@ def create_app():
     # Initialize extensions
     db.init_app(app)
     jwt.init_app(app)
+    mail.init_app(app)
     CORS(app, resources={r"/api/*": {"origins": "*"}})
     
     # Register error handlers
@@ -35,6 +38,7 @@ def create_app():
     from app.routes.notification import notification_bp
     from app.routes.task_extra import extra_bp
     from app.routes.analytics import analytics_bp
+    from app.routes.subtask import subtask_bp
 
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(project_bp, url_prefix='/api/projects')
@@ -43,6 +47,7 @@ def create_app():
     app.register_blueprint(notification_bp, url_prefix='/api/notifications')
     app.register_blueprint(extra_bp, url_prefix='/api')
     app.register_blueprint(analytics_bp, url_prefix='/api')
+    app.register_blueprint(subtask_bp, url_prefix='/api')
 
     # Add file serving route for uploads
     @app.route('/uploads/<path:filepath>')
@@ -55,7 +60,7 @@ def create_app():
             return {'error': 'File not found'}, 404
 
     # Import models so SQLAlchemy creates all tables
-    from app.models import User, Project, ProjectReport, ProjectMember, ProjectInvitation, Task, Notification, TaskComment, TaskActivity, TimeEntry  # noqa: F401
+    from app.models import User, Project, ProjectReport, ProjectMember, ProjectInvitation, Task, Subtask, Notification, TaskComment, TaskActivity, TimeEntry, EmailVerification  # noqa: F401
 
     # Create database tables and auto-migrate columns if needed
     with app.app_context():

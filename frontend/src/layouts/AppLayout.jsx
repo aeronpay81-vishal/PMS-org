@@ -13,6 +13,7 @@ import Aiinsight from "../modules/Aiinsight";
 import Workflow from "../modules/Workflow";
 import { Calender } from "../modules/Calender";
 import { Automation } from "../modules/Automation";
+import Settings from "../modules/Settings";
 const AppLayout = ({ user, onLogout }) => {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [activeItem, setActiveItem] = useState("Dashboard");
@@ -21,7 +22,7 @@ const AppLayout = ({ user, onLogout }) => {
   const renderModule = () => {
     switch (activeItem) {
       case "Dashboard":
-        return <Dashboard user={currentUser} />;
+        return <Dashboard user={currentUser} onNavigate={setActiveItem} />;
       case "Projects":
         return <Projects user={currentUser} />;
       case "Tasks":
@@ -42,17 +43,19 @@ const AppLayout = ({ user, onLogout }) => {
         return <Workflow user={currentUser} />;
       case "Calendar":
         return <Calender user={currentUser} />;
+        case "Settings":
+        return <Settings user={currentUser} />;
       default:
         return (
-          <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 shadow-[0_12px_40px_-28px_rgba(15,23,42,0.35)]">
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{activeItem}</h1>
+          <div className="rounded border border-[#DCDFE4] bg-white p-8 dark:border-slate-800 dark:bg-slate-900">
+            <h1 className="text-xl font-semibold text-[#172B4D] dark:text-white">{activeItem}</h1>
           </div>
         );
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#EEF2FF] dark:bg-slate-950 transition-colors duration-300">
+    <div className="relative min-h-screen overflow-x-hidden bg-[#F7F8F9] transition-colors duration-300 dark:bg-slate-950">
       <Sidebar
         user={currentUser}
         activeItem={activeItem}
@@ -61,7 +64,7 @@ const AppLayout = ({ user, onLogout }) => {
         onClose={() => setMobileSidebarOpen(false)}
       />
 
-      <div className="min-h-screen lg:pl-[240px]">
+      <div className="relative min-h-screen lg:pl-[240px]">
         <Topbar
           user={currentUser}
           onLogout={onLogout}
@@ -69,7 +72,7 @@ const AppLayout = ({ user, onLogout }) => {
           onMenuClick={() => setMobileSidebarOpen(true)}
         />
 
-        <main className="mx-auto max-w-[1600px] px-4 py-5 sm:px-6 lg:px-8 lg:py-7">
+        <main className="mx-auto max-w-[1600px] px-4 py-5 sm:px-6 lg:px-8">
           {renderModule()}
         </main>
       </div>
