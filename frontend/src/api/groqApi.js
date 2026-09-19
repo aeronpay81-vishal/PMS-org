@@ -1,4 +1,3 @@
-
 // groqAPI.js
 // Enhanced Groq API wrapper with multiple automation functions
 // 
@@ -24,6 +23,302 @@ const GROQ_API_KEY =
   (typeof import.meta !== "undefined" && import.meta.env?.VITE_GROQ_API_KEY) ||
   (typeof process !== "undefined" && process.env?.REACT_APP_GROQ_API_KEY) ||
   "";
+
+// ============ HELPER FUNCTION ============
+
+async function callGroqAPI(systemPrompt, userContent) {
+  if (!GROQ_API_KEY) {
+    throw new Error(
+      "Missing Groq API key. Set VITE_GROQ_API_KEY or REACT_APP_GROQ_API_KEY"
+    );
+  }
+
+  const response = await fetch(GROQ_ENDPOINT, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${GROQ_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: GROQ_MODEL,
+      temperature: 0.1,
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userContent },
+      ],
+      response_format: { type: "json_object" },
+    }),
+  });
+
+  if (!response.ok) {
+    const errText = await response.text().catch(() => "");
+    throw new Error(`Groq API error (${response.status}): ${errText}`);
+  }
+
+  const data = await response.json();
+  const raw = data.choices?.[0]?.message?.content ?? "{}";
+
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    throw new Error("AI returned unparsable JSON response");
+  }
+}
+
+// ============ TASK TITLE + DESCRIPTION GENERATOR ============
+
+const TASK_TITLE_DESCRIPTION_PROMPT = `You are a seasoned team lead who writes task briefs the way an experienced human would — clear, practical, and direct. Not corporate. Not robotic. Not marketing fluff.
+
+You will receive:
+- A TASK TITLE (may be short, rough, or just a rough idea)
+- An optional EXISTING description (may be empty, rough notes, or a partial draft)
+
+Your job: produce a polished TASK TITLE and a clear, actionable DESCRIPTION that a developer or team member would actually want to read.
+
+═══════════════════════════════════════
+CRITICAL RULES
+═══════════════════════════════════════
+
+1. LANGUAGE & TONE
+   - Write like a competent human, not like an AI.
+   - Avoid buzzwords: "leverage", "synergy", "robust", "cutting-edge", "seamless", "holistic", "paradigm", "best-in-class", "empower", "unlock", "streamline".
+   - Use plain English. Short sentences. Direct and useful.
+   - Clear but not cold. Practical but not dry.
+
+2. TITLE RULES
+   - Keep it short and scannable — 3 to 8 words maximum.
+   - Use Title Case.
+   - Start with an action verb when possible: "Add", "Fix", "Refactor", "Update", "Build", "Remove".
+   - No trailing punctuation, no emojis, no quotes, no "Task:" prefix.
+   - If the user's title is already good, keep it (maybe minor polish).
+   - If vague (e.g. "test", "fix", "abc"), rewrite it based on the description. If both are vague, generate something sensible based on context or use "General Task".
+
+3. DESCRIPTION RULES (ENHANCE vs GENERATE)
+   - If EXISTING description is meaningful (real content, not "test" or "asdf"):
+     • ENHANCE it. Keep the user's intent, requirements, and specifics intact.
+     • Fix grammar, tighten wording, remove repetition.
+     • Do NOT invent requirements the user didn't mention.
+   - If NO existing description OR it's too short/vague:
+     • GENERATE a fresh, actionable description based on the title.
+     • Focus on: what needs to be done, why it matters, and what "done" looks like.
+   - Length: 2-4 sentences, roughly 40-100 words.
+   - One clean paragraph. No line breaks inside.
+   - NO markdown, NO bullets, NO headings, NO emojis.
+
+4. WHAT TO INCLUDE IN DESCRIPTION
+   - Start naturally — with the goal or the problem being solved.
+   - Be specific about what needs to be done.
+   - Mention acceptance criteria or the outcome in plain terms.
+   - Do NOT mention specific deadlines or team member names.
+
+5. IF BOTH TITLE AND DESCRIPTION ARE VAGUE (e.g. "test", "abc", "asdf")
+   - Title: "General Task"
+   - Description: "Details for this task are still being defined. Once the scope is clear, this section will outline what needs to be done and what a successful outcome looks like."
+   - Set "confidence" to "low".
+
+═══════════════════════════════════════
+STYLE EXAMPLES
+═══════════════════════════════════════
+
+❌ BAD TITLE: "Fix the issue related to authentication flow in the login component"
+✅ GOOD TITLE: "Fix Login Redirect Loop"
+
+❌ BAD TITLE: "test"
+✅ GOOD TITLE: "Add Password Reset Flow"
+
+❌ BAD DESCRIPTION (robotic):
+"Leverage modern best practices to seamlessly integrate a robust authentication flow ensuring optimal user experience."
+
+✅ GOOD DESCRIPTION (human):
+"Users are getting stuck in a redirect loop when they log in from the mobile web view. The session token isn't persisting across the navigation boundary. Fix the token storage so users land on the dashboard as expected, and add a regression test so this doesn't break again."
+
+❌ BAD DESCRIPTION (vague):
+"Improve the app and make it better."
+
+✅ GOOD DESCRIPTION (specific):
+"Add a password reset option to the login screen so users can recover access without contacting support. The flow should send a reset link by email, let the user set a new password, and invalidate old sessions. Success means users can complete the reset in under a minute."
+
+═══════════════════════════════════════
+OUTPUT FORMAT
+═══════════════════════════════════════
+
+Respond ONLY with valid JSON, no extra text:
+
+{
+  "title": "the polished task title",
+  "description": "the final polished paragraph",
+  "mode": "enhanced" | "generated",
+  "tone": "professional" | "technical" | "creative",
+  "confidence": "high" | "medium" | "low"
+}`;
+
+/**
+ * Generate or enhance a TASK title AND description.
+ */
+export async function suggestTaskTitleAndDescription(taskTitle, existingDescription = "") {
+  if (!taskTitle || !taskTitle.trim()) {
+    throw new Error("Task title is required to generate content");
+  }
+
+  const trimmedTitle = taskTitle.trim();
+  const trimmedExisting = (existingDescription || "").trim();
+
+  const userContent = `Task title: "${trimmedTitle}"
+
+${trimmedExisting
+      ? `Existing description (enhance this if meaningful, keep the user's intent):\n"""\n${trimmedExisting}\n"""`
+      : `Existing description: (none provided — generate fresh)`
+    }`;
+
+  const result = await callGroqAPI(TASK_TITLE_DESCRIPTION_PROMPT, userContent);
+
+  if (!result?.description) {
+    throw new Error("AI did not return a description. Try again.");
+  }
+
+  return {
+    title: (result.title || trimmedTitle).trim(),
+    description: result.description.trim(),
+    mode: result.mode || (trimmedExisting ? "enhanced" : "generated"),
+    tone: result.tone || "professional",
+    confidence: result.confidence || "medium",
+  };
+}
+
+// ============ PROJECT TITLE + DESCRIPTION GENERATOR ============
+
+const PROJECT_TITLE_DESCRIPTION_PROMPT = `You are a seasoned project lead who writes project briefs the way an experienced human would — clear, warm, and direct. Not corporate. Not robotic. Not marketing fluff.
+
+You will receive:
+- A PROJECT TITLE (may be short, rough, or even a rough idea)
+- An optional EXISTING description (may be empty, rough notes, or a partial draft)
+
+Your job: produce a polished PROJECT TITLE and a clear, natural DESCRIPTION that a real team member would actually want to read.
+
+═══════════════════════════════════════
+CRITICAL RULES
+═══════════════════════════════════════
+
+1. LANGUAGE & TONE
+   - Write like a competent human, not like an AI.
+   - Avoid buzzwords: "leverage", "synergy", "robust", "cutting-edge", "seamless", "holistic", "paradigm", "best-in-class", "state-of-the-art", "empower", "unlock", "streamline" (unless truly fitting).
+   - Avoid clichés: "in today's fast-paced world", "at the end of the day", "game-changer".
+   - Use plain English. Short sentences. Natural rhythm.
+   - Confident but not boastful. Clear but not cold.
+
+2. TITLE RULES
+   - Keep it short and scannable — 3 to 7 words maximum.
+   - Use Title Case (capitalize major words).
+   - No trailing punctuation, no emojis, no quotes.
+   - Make it specific enough to be meaningful, but not overly long.
+   - If the user's title is already good, keep it (maybe minor polish).
+   - If the user's title is vague (e.g. "test", "project", "abc"), rewrite it based on what the description suggests. If both are vague, generate a sensible generic title like "New Project Initiative".
+   - Do NOT include dates, version numbers, or "Project:" prefix.
+
+3. DESCRIPTION RULES (ENHANCE vs GENERATE)
+   - If EXISTING description is meaningful (real content, not "test" or "asdf"):
+     • ENHANCE it. Keep the user's intent, features, and specifics intact.
+     • Fix grammar, tighten wording, remove repetition.
+     • Do NOT invent features the user didn't mention.
+   - If NO existing description OR it's too short/vague/placeholder:
+     • GENERATE a fresh, sensible description based on the title.
+     • Focus on: what we're building, why it matters, what success looks like.
+   - Length: 3-5 sentences, roughly 70-150 words.
+   - One clean paragraph. No line breaks inside the paragraph.
+   - NO markdown, NO bullets, NO headings, NO emojis.
+
+4. WHAT TO INCLUDE IN DESCRIPTION
+   - Start naturally — sometimes with the goal, sometimes with the problem, sometimes with what's being built. Vary the opening.
+   - Mention 1-3 concrete deliverables or focus areas (only if relevant).
+   - End with what a successful outcome looks like (in plain terms).
+   - Do NOT mention specific dates, deadlines, or team member names.
+   - Do NOT invent specific tools (Figma, React, AWS) unless the user named them.
+
+5. IF BOTH TITLE AND DESCRIPTION ARE VAGUE (e.g. "test", "abc", "asdf")
+   - Title: "New Project Initiative"
+   - Description: "Details for this project are still being defined. Once the scope is clear, this section will outline the goals, key deliverables, and what success looks like."
+   - Set "confidence" to "low".
+
+═══════════════════════════════════════
+STYLE EXAMPLES
+═══════════════════════════════════════
+
+❌ BAD TITLE: "Redesign of the Official Company Website and Its Various Sub-pages"
+✅ GOOD TITLE: "Website Redesign"
+
+❌ BAD TITLE: "test"
+✅ GOOD TITLE: "Customer Onboarding Revamp"
+
+❌ BAD DESCRIPTION (robotic):
+"Leverage cutting-edge synergies to streamline holistic deliverables and empower stakeholders with seamless, robust solutions."
+
+✅ GOOD DESCRIPTION (human):
+"This project focuses on redesigning the customer onboarding experience to reduce drop-off and improve first-week engagement. The main deliverables include a simplified signup flow, a guided walkthrough, and clearer in-app messaging. Success means more users reaching their first meaningful action within 24 hours of signing up."
+
+❌ BAD DESCRIPTION (vague):
+"This project aims to deliver value and achieve goals in an efficient manner."
+
+✅ GOOD DESCRIPTION (specific):
+"We're building a mobile companion app that lets customers track orders, manage returns, and reach support without opening the website. The first release covers the tracking and returns flows, with support chat planned for a later phase. The goal is to reduce support tickets and give repeat customers a faster way to self-serve."
+
+═══════════════════════════════════════
+OUTPUT FORMAT
+═══════════════════════════════════════
+
+Respond ONLY with valid JSON, no extra text:
+
+{
+  "title": "the polished project title",
+  "description": "the final polished paragraph",
+  "mode": "enhanced" | "generated",
+  "tone": "professional" | "technical" | "creative",
+  "confidence": "high" | "medium" | "low"
+}`;
+
+/**
+ * Generate or enhance a project title AND description.
+ */
+export async function suggestProjectTitleAndDescription(projectTitle, existingDescription = "") {
+  if (!projectTitle || !projectTitle.trim()) {
+    throw new Error("Project title is required to generate content");
+  }
+
+  const trimmedTitle = projectTitle.trim();
+  const trimmedExisting = (existingDescription || "").trim();
+
+  const userContent = `Project title: "${trimmedTitle}"
+
+${trimmedExisting
+      ? `Existing description (enhance this if meaningful, keep the user's intent):\n"""\n${trimmedExisting}\n"""`
+      : `Existing description: (none provided — generate fresh)`
+    }`;
+
+  const result = await callGroqAPI(PROJECT_TITLE_DESCRIPTION_PROMPT, userContent);
+
+  if (!result?.description) {
+    throw new Error("AI did not return a description. Try again.");
+  }
+
+  return {
+    title: (result.title || trimmedTitle).trim(),
+    description: result.description.trim(),
+    mode: result.mode || (trimmedExisting ? "enhanced" : "generated"),
+    tone: result.tone || "professional",
+    confidence: result.confidence || "medium",
+  };
+}
+
+/**
+ * Backward-compatible alias — returns only description for project.
+ */
+export async function suggestProjectDescription(projectName, existingDescription = "") {
+  const result = await suggestProjectTitleAndDescription(projectName, existingDescription);
+  return {
+    description: result.description,
+    mode: result.mode,
+    tone: result.tone,
+  };
+}
 
 // ============ SYSTEM PROMPTS ============
 
@@ -111,54 +406,10 @@ Respond ONLY with JSON:
   "estimatedDelay": "days" | null
 }`;
 
-// ============ HELPER FUNCTIONS ============
-
-async function callGroqAPI(systemPrompt, userContent) {
-  if (!GROQ_API_KEY) {
-    throw new Error(
-      "Missing Groq API key. Set VITE_GROQ_API_KEY or REACT_APP_GROQ_API_KEY"
-    );
-  }
-
-  const response = await fetch(GROQ_ENDPOINT, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${GROQ_API_KEY}`,
-    },
-    body: JSON.stringify({
-      model: GROQ_MODEL,
-      temperature: 0.1,
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userContent },
-      ],
-      response_format: { type: "json_object" },
-    }),
-  });
-
-  if (!response.ok) {
-    const errText = await response.text().catch(() => "");
-    throw new Error(`Groq API error (${response.status}): ${errText}`);
-  }
-
-  const data = await response.json();
-  const raw = data.choices?.[0]?.message?.content ?? "{}";
-
-  try {
-    return JSON.parse(raw);
-  } catch (err) {
-    throw new Error("AI returned unparsable JSON response");
-  }
-}
-
 // ============ EXPORTED FUNCTIONS ============
 
 /**
  * Parse a natural-language command into a structured intent
- * @param {string} command - e.g. "mark Project Alpha as completed"
- * @param {Array<{id:string,name:string}>} context - known projects for name resolution
- * @returns {Promise<object>} intent object with action, entity, target, fields, etc
  */
 export async function parseCommand(command, context = []) {
   if (!GROQ_API_KEY) {
@@ -206,11 +457,8 @@ export async function parseCommand(command, context = []) {
 
 /**
  * Analyze a report and suggest a project status
- * @param {string} reportContent - the full report text
- * @returns {Promise<{status: string | null, reason: string, confidence: number, analysis: string}>}
  */
 export async function suggestStatusFromReport(reportContent) {
-  // Validation: check if content is too short/empty
   const trimmed = reportContent.trim();
   if (!trimmed) {
     return {
@@ -221,7 +469,6 @@ export async function suggestStatusFromReport(reportContent) {
     };
   }
 
-  // Check for obviously non-report content (single word, generic placeholders)
   if (trimmed.length < 10 || /^(status|test|hello|hi|ok|yes|no)$/i.test(trimmed)) {
     return {
       status: null,
@@ -240,8 +487,6 @@ export async function suggestStatusFromReport(reportContent) {
 
 /**
  * Detect risks and blockers in a report
- * @param {string} reportContent
- * @returns {Promise<{hasRisk: boolean, riskLevel: string, risks: string[], blockers: string[], recommendation: string}>}
  */
 export async function detectRisksFromReport(reportContent) {
   if (!reportContent.trim()) {
@@ -252,8 +497,6 @@ export async function detectRisksFromReport(reportContent) {
 
 /**
  * Assess team health from a report
- * @param {string} reportContent
- * @returns {Promise<{morale: string, workloadStatus: string, concerns: string[]}>}
  */
 export async function analyzeTeamHealthFromReport(reportContent) {
   if (!reportContent.trim()) {
@@ -264,8 +507,6 @@ export async function analyzeTeamHealthFromReport(reportContent) {
 
 /**
  * Extract milestone progress from a report
- * @param {string} reportContent
- * @returns {Promise<{completionPercentage: number, milestonesCompleted: string[], milestonesAtRisk: string[], estimatedDelay: string | null}>}
  */
 export async function extractMilestoneProgressFromReport(reportContent) {
   if (!reportContent.trim()) {
@@ -276,8 +517,6 @@ export async function extractMilestoneProgressFromReport(reportContent) {
 
 /**
  * Comprehensive report analysis (all insights at once)
- * @param {string} reportContent
- * @returns {Promise<object>} combined insights from status, risks, team, and milestones
  */
 export async function analyzeReportComprehensive(reportContent) {
   if (!reportContent.trim()) {

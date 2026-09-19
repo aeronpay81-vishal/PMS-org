@@ -7,15 +7,12 @@ import {
   EyeOff,
   Sparkles,
   ShieldCheck,
-  CheckCircle2,
   Users,
   Briefcase,
-  Menu,
-  X,
 } from 'lucide-react';
-import { Link } from 'react-router-dom'
 import { authAPI } from '../api/admin'
 import EmailVerificationOtp from '../components/dashboard/EmailVerificationOtp'
+import Navbar from '../components/navigation/Navbar'
 
 // ================= Entrance / ambient animation styles =================
 const AeroStyles = () => (
@@ -97,7 +94,6 @@ const Login = ({ onLogin, showFooter = true }) => {
   const [isOtpVerifying, setIsOtpVerifying] = useState(false)
   const [isChoosingRole, setIsChoosingRole] = useState(false)
   const [tempCredentials, setTempCredentials] = useState(null)
-  const [navOpen, setNavOpen] = useState(false)
 
   const isLogin = mode === 'login'
 
@@ -247,66 +243,7 @@ const Login = ({ onLogin, showFooter = true }) => {
     <div className="min-h-screen bg-white text-slate-900">
       <AeroStyles />
 
-      {/* ================= NAVBAR ================= */}
-      <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/90 backdrop-blur">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-5 sm:px-8">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-violet-500 text-white shadow-sm shadow-indigo-500/30">
-              <LayoutDashboard className="h-4 w-4" />
-            </div>
-            <span className="text-[15px] font-semibold tracking-tight text-slate-900">
-              AeroPilot
-            </span>
-          </div>
-
-          <nav className="hidden items-center gap-8 md:flex">
-            <Link to="/features" className="text-sm font-medium text-slate-600 transition hover:text-slate-900">Features</Link>
-            <Link to="/how-it-works" className="text-sm font-medium text-slate-600 transition hover:text-slate-900">How it works</Link>
-            <Link to="/pricing" className="text-sm font-medium text-slate-600 transition hover:text-slate-900">Pricing</Link>
-            <Link to="/faq" className="text-sm font-medium text-slate-600 transition hover:text-slate-900">FAQ</Link>
-          </nav>
-
-          <div className="hidden items-center gap-3 md:flex">
-            <span className="text-sm text-slate-500">
-              {isLogin ? "Don't have an account?" : 'Already have an account?'}
-            </span>
-            <button
-              type="button"
-              onClick={switchMode}
-              className="flex h-9 items-center rounded-lg bg-slate-900 px-4 text-sm font-medium text-white transition hover:bg-slate-800 active:scale-[0.97]"
-            >
-              {isLogin ? 'Create Account' : 'Sign In'}
-            </button>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => setNavOpen((v) => !v)}
-            className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-600 md:hidden"
-            aria-label="Toggle menu"
-          >
-            {navOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </button>
-        </div>
-
-        {navOpen && (
-          <div className="aero-in border-t border-slate-200 px-5 py-4 md:hidden">
-            <div className="flex flex-col gap-4">
-              <Link to="/features" className="text-sm font-medium text-slate-600">Features</Link>
-              <Link to="/how-it-works" className="text-sm font-medium text-slate-600">How it works</Link>
-              <Link to="/pricing" className="text-sm font-medium text-slate-600">Pricing</Link>
-              <Link to="/faq" className="text-sm font-medium text-slate-600">FAQ</Link>
-              <button
-                type="button"
-                onClick={switchMode}
-                className="mt-2 flex h-9 items-center justify-center rounded-lg bg-slate-900 px-4 text-sm font-medium text-white"
-              >
-                {isLogin ? 'Create Account' : 'Sign In'}
-              </button>
-            </div>
-          </div>
-        )}
-      </header>
+      <Navbar activePage="login" variant="auth" isLogin={isLogin} onSwitchMode={switchMode} />
 
       {/* ================= HERO (angled band, Jira-style split) ================= */}
       <section className="relative overflow-hidden">
@@ -357,51 +294,11 @@ const Login = ({ onLogin, showFooter = true }) => {
               className="aero-in relative mt-10 max-w-[440px]"
               style={{ animationDelay: '280ms' }}
             >
-              <div className="aero-float overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_35px_80px_-40px_rgba(79,70,229,0.35)]">
-                <div className="flex items-center gap-2 border-b border-slate-100 bg-slate-50 px-4 py-2.5">
-                  <span className="h-2 w-2 rounded-full bg-rose-300" />
-                  <span className="h-2 w-2 rounded-full bg-amber-300" />
-                  <span className="h-2 w-2 rounded-full bg-emerald-300" />
-                  <span className="ml-2 rounded-md bg-white px-2 py-0.5 text-[9px] text-slate-400">
-                    app.aeropilot.io
-                  </span>
-                </div>
-                <div className="grid grid-cols-3 gap-2.5 p-4">
-                  {[
-                    { name: 'To do', items: ['Design review', 'Fix export bug'] },
-                    { name: 'In progress', items: ['API rate limits'], glow: true },
-                    { name: 'Done', items: ['Client deck', 'QA pass'] },
-                  ].map((col) => (
-                    <div key={col.name} className="rounded-lg bg-slate-50 p-2">
-                      <p className="mb-1.5 text-[9px] font-medium text-slate-500">{col.name}</p>
-                      <div className="space-y-1.5">
-                        {col.items.map((item) => (
-                          <div
-                            key={item}
-                            className={`rounded-md border border-slate-200 bg-white px-2 py-1.5 ${col.glow ? 'aero-glow-card' : ''}`}
-                          >
-                            <p className="text-[9px] leading-tight text-slate-700">{item}</p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Single accent callout */}
-              <div
-                className="aero-pop absolute -bottom-5 -right-4 flex items-center gap-2.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 shadow-[0_15px_35px_-15px_rgba(15,23,42,0.35)]"
-                style={{ animationDelay: '650ms' }}
-              >
-                <span className="aero-pulse-icon flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50">
-                  <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                </span>
-                <div>
-                  <p className="text-sm font-semibold leading-none text-slate-900">92%</p>
-                  <p className="mt-0.5 text-[9px] text-slate-500">deadlines met on time</p>
-                </div>
-              </div>
+              <img
+                src="https://dapulse-res.cloudinary.com/image/upload/f_auto,q_auto:best/remote_mondaycom_static/uploads/noareshef/general%20lp/Project_managemnt_asset1.png"
+                alt="Project management board preview"
+                className="aero-float block h-auto w-full "
+              />
             </div>
 
             {/* Trust row */}

@@ -1,7 +1,7 @@
 import { Check } from "lucide-react";
 import { Link } from "react-router-dom";
 import Footer from "./Footer";
-import MarketingNavbar from "../components/MarketingNavbar";
+import Navbar from "../components/navigation/Navbar";
 
 const PLANS = [
   {
@@ -38,7 +38,7 @@ const PLANS = [
 
 const Pricing = ({ showChrome = true }) => (
   <div className={`${showChrome ? "marketing-page" : ""}`}>
-    {showChrome && <MarketingNavbar activePage="pricing" />}
+    {showChrome && <Navbar activePage="pricing" />}
 
     <section className={`mx-auto max-w-6xl px-4 ${showChrome ? "py-16 sm:px-6" : "py-12 sm:px-8"}`}>
       <div className="mx-auto max-w-2xl text-center">
@@ -80,7 +80,7 @@ const Pricing = ({ showChrome = true }) => (
             <Link
               to={plan.price === "Custom" ? "/contact" : "/"}
               className={`mt-8 flex h-10 items-center justify-center rounded text-[13px] font-medium ${plan.highlight
-                  ? "bg-[#0C66E4] text-white hover:bg-[#0055CC]"
+                  ? "bg-indigo-600 text-white hover:bg-indigo-700"
                   : "border border-[#DCDFE4] text-[#172B4D] hover:bg-[#F1F2F4]"
                 }`}
             >

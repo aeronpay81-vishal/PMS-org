@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import {
   KanbanSquare,
@@ -10,11 +11,78 @@ import {
   Clock,
   Zap,
   ChevronRight,
+  MoreHorizontal,
+  Circle,
+  CalendarDays,
+  AlertCircle,
+  Sparkles,
+  Activity,
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 
 import Footer from "./Footer";
-import MarketingNavbar from "../components/MarketingNavbar";
+import Navbar from "../components/navigation/Navbar";
+
+/* =========================================================
+   ANIMATION VARIANTS
+========================================================= */
+
+const fadeUp = {
+  hidden: {
+    opacity: 0,
+    y: 24,
+  },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.65,
+      ease: [0.22, 1, 0.36, 1],
+    },
+  },
+};
+
+const fadeIn = {
+  hidden: {
+    opacity: 0,
+  },
+  visible: {
+    opacity: 1,
+    transition: {
+      duration: 0.55,
+      ease: "easeOut",
+    },
+  },
+};
+
+const staggerContainer = {
+  hidden: {},
+  visible: {
+    transition: {
+      staggerChildren: 0.08,
+    },
+  },
+};
+
+const cardAnimation = {
+  hidden: {
+    opacity: 0,
+    y: 12,
+  },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.4,
+      ease: [0.22, 1, 0.36, 1],
+    },
+  },
+};
+
+/* =========================================================
+   FEATURE DATA
+========================================================= */
 
 const TABS = [
   {
@@ -61,190 +129,919 @@ const TABS = [
   },
 ];
 
-const BoardsMock = () => (
-  <div className="marketing-card overflow-hidden p-5 shadow-sm">
-    <div className="mb-4 flex items-center justify-between">
-      <div className="flex items-center gap-1.5">
-        <span className="h-2 w-2 rounded-full bg-[#C9372C]" />
-        <span className="h-2 w-2 rounded-full bg-[#E2B203]" />
-        <span className="h-2 w-2 rounded-full bg-[#1F845A]" />
-      </div>
-      <span className="rounded bg-[#E9F2FF] px-2 py-0.5 text-[10px] font-semibold text-[#0C66E4]">
-        Sprint 24
-      </span>
-    </div>
-    <div className="grid grid-cols-3 gap-3">
-      {[
-        { label: "To do", count: 4, color: "bg-[#8993A4]" },
-        { label: "In progress", count: 3, color: "bg-[#0C66E4]" },
-        { label: "Done", count: 6, color: "bg-[#1F845A]" },
-      ].map((col) => (
-        <div key={col.label} className="rounded bg-[#F7F8F9] p-2.5">
-          <div className="mb-2 flex items-center justify-between">
-            <div className="flex items-center gap-1.5">
-              <span className={`h-1.5 w-1.5 rounded-full ${col.color}`} />
-              <p className="text-[10px] font-semibold text-[#44546F]">{col.label}</p>
-            </div>
-            <span className="text-[9px] text-[#8993A4]">{col.count}</span>
-          </div>
-          <div className="space-y-2">
-            {[0, 1].map((i) => (
-              <div key={i} className="rounded border border-[#DCDFE4] bg-white p-2">
-                <div className="mb-1.5 h-1 w-8 rounded bg-[#B3D4FF]" />
-                <div className="h-1.5 w-full rounded bg-[#F1F2F4]" />
-                <div className="mt-2 flex items-center justify-between">
-                  <div className="h-4 w-4 rounded-full bg-[#0C66E4]" />
-                  <Clock className="h-2.5 w-2.5 text-[#8993A4]" />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      ))}
-    </div>
+/* =========================================================
+   SMALL UI COMPONENTS
+========================================================= */
+
+const Avatar = ({ children = "JD", className = "" }) => (
+  <div
+    className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 border-white bg-slate-200 text-[8px] font-bold text-slate-600 ${className}`}
+  >
+    {children}
   </div>
 );
+
+const StatusDot = ({ color = "bg-slate-400" }) => (
+  <span className={`h-2 w-2 shrink-0 rounded-full ${color}`} />
+);
+
+/* =========================================================
+   SMART BOARDS MOCKUP
+========================================================= */
+
+const BoardsMock = () => (
+  <motion.div
+    initial={{ opacity: 0, scale: 0.96, y: 12 }}
+    animate={{ opacity: 1, scale: 1, y: 0 }}
+    transition={{
+      duration: 0.55,
+      ease: [0.22, 1, 0.36, 1],
+    }}
+    whileHover={{
+      y: -5,
+      transition: { duration: 0.25 },
+    }}
+    className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_20px_60px_rgba(15,23,42,0.10)]"
+  >
+    <div className="flex h-11 items-center justify-between border-b border-slate-200 bg-slate-50/80 px-4">
+      <div className="flex items-center gap-1.5">
+        <span className="h-2.5 w-2.5 rounded-full bg-red-400" />
+        <span className="h-2.5 w-2.5 rounded-full bg-amber-400" />
+        <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
+      </div>
+
+      <div className="flex items-center gap-2">
+        <div className="hidden h-5 w-32 rounded bg-white shadow-sm sm:block" />
+        <MoreHorizontal className="h-4 w-4 text-slate-400" />
+      </div>
+    </div>
+
+    <div className="border-b border-slate-100 px-4 py-4 sm:px-5">
+      <div className="flex items-center justify-between">
+        <div>
+          <div className="flex items-center gap-2">
+            <div className="flex h-6 w-6 items-center justify-center rounded-md bg-blue-600 text-white">
+              <KanbanSquare className="h-3.5 w-3.5" />
+            </div>
+
+            <p className="text-[12px] font-semibold text-slate-900">
+              Product Launch
+            </p>
+
+            <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[8px] font-semibold text-emerald-600">
+              On track
+            </span>
+          </div>
+
+          <p className="mt-1 text-[9px] text-slate-400">
+            Sprint 24 · 13 tasks
+          </p>
+        </div>
+
+        <button className="hidden items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[9px] font-medium text-slate-500 sm:flex">
+          <CalendarDays className="h-3 w-3" />
+          This sprint
+        </button>
+      </div>
+    </div>
+
+    <div className="overflow-x-auto bg-slate-50/70 p-4 sm:p-5">
+      <div className="grid min-w-[500px] grid-cols-3 gap-3">
+        {[
+          {
+            label: "To do",
+            count: 4,
+            dot: "bg-slate-400",
+            tasks: [
+              ["Update landing page", "High"],
+              ["Prepare launch copy", "Medium"],
+            ],
+          },
+          {
+            label: "In progress",
+            count: 3,
+            dot: "bg-blue-500",
+            tasks: [
+              ["Design dashboard", "High"],
+              ["API integration", "Medium"],
+            ],
+          },
+          {
+            label: "Done",
+            count: 6,
+            dot: "bg-emerald-500",
+            tasks: [
+              ["Research competitors", "Done"],
+              ["Create wireframes", "Done"],
+            ],
+          },
+        ].map((column) => (
+          <motion.div
+            key={column.label}
+            variants={cardAnimation}
+            initial="hidden"
+            animate="visible"
+            className="rounded-xl border border-slate-200 bg-slate-100/80 p-2.5"
+          >
+            <div className="mb-2.5 flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <StatusDot color={column.dot} />
+                <span className="text-[9px] font-bold text-slate-600">
+                  {column.label}
+                </span>
+              </div>
+
+              <span className="rounded-md bg-white px-1.5 py-0.5 text-[8px] font-medium text-slate-400">
+                {column.count}
+              </span>
+            </div>
+
+            <motion.div
+              variants={staggerContainer}
+              initial="hidden"
+              animate="visible"
+              className="space-y-2"
+            >
+              {column.tasks.map(([task, priority], index) => (
+                <motion.div
+                  key={task}
+                  variants={cardAnimation}
+                  whileHover={{
+                    y: -2,
+                    transition: { duration: 0.2 },
+                  }}
+                  className="group rounded-lg border border-slate-200 bg-white p-2.5 shadow-sm"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="text-[9px] font-semibold leading-4 text-slate-700">
+                      {task}
+                    </p>
+
+                    {index === 0 && (
+                      <MoreHorizontal className="h-3 w-3 shrink-0 text-slate-300" />
+                    )}
+                  </div>
+
+                  <div className="mt-2.5 flex items-center justify-between">
+                    <span
+                      className={`rounded px-1.5 py-0.5 text-[7px] font-semibold ${
+                        priority === "High"
+                          ? "bg-red-50 text-red-500"
+                          : priority === "Done"
+                            ? "bg-emerald-50 text-emerald-600"
+                            : "bg-amber-50 text-amber-600"
+                      }`}
+                    >
+                      {priority}
+                    </span>
+
+                    <Avatar>{index === 1 ? "AM" : "VP"}</Avatar>
+                  </div>
+                </motion.div>
+              ))}
+            </motion.div>
+
+            <button className="mt-2 flex w-full items-center justify-center gap-1 rounded-lg py-1.5 text-[8px] font-medium text-slate-400 transition hover:bg-white hover:text-slate-600">
+              <span className="text-base leading-none">+</span>
+              Add task
+            </button>
+          </motion.div>
+        ))}
+      </div>
+    </div>
+
+    <div className="flex items-center justify-between border-t border-slate-200 bg-white px-4 py-3">
+      <div className="flex items-center gap-3 text-[8px] text-slate-400">
+        <span className="flex items-center gap-1">
+          <Activity className="h-3 w-3 text-blue-500" />
+          Live updates
+        </span>
+
+        <span className="hidden items-center gap-1 sm:flex">
+          <Users className="h-3 w-3 text-slate-400" />
+          8 members
+        </span>
+      </div>
+
+      <span className="flex items-center gap-1 text-[8px] font-semibold text-blue-600">
+        View board
+        <ChevronRight className="h-3 w-3" />
+      </span>
+    </div>
+  </motion.div>
+);
+
+/* =========================================================
+   AUTOMATED REMINDERS MOCKUP
+========================================================= */
 
 const RemindersMock = () => (
-  <div className="marketing-card overflow-hidden p-5 shadow-sm">
-    <div className="mb-4 flex items-center justify-between">
-      <p className="text-[10px] font-semibold uppercase tracking-wider text-[#626F86]">Notifications</p>
-      <span className="flex items-center gap-1 rounded bg-[#FFF7D6] px-2 py-0.5 text-[9px] font-semibold text-[#946F00]">
-        <BellRing className="h-2.5 w-2.5" />3 new
-      </span>
+  <motion.div
+    initial={{ opacity: 0, scale: 0.96, y: 12 }}
+    animate={{ opacity: 1, scale: 1, y: 0 }}
+    transition={{
+      duration: 0.55,
+      ease: [0.22, 1, 0.36, 1],
+    }}
+    whileHover={{
+      y: -5,
+      transition: { duration: 0.25 },
+    }}
+    className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_20px_60px_rgba(15,23,42,0.10)]"
+  >
+    <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+      <div>
+        <p className="text-[11px] font-bold text-slate-800">
+          Notification center
+        </p>
+
+        <p className="mt-0.5 text-[8px] text-slate-400">
+          Stay on top of what needs attention
+        </p>
+      </div>
+
+      <motion.div
+        animate={{
+          rotate: [0, -8, 8, -4, 4, 0],
+        }}
+        transition={{
+          duration: 1.5,
+          repeat: Infinity,
+          repeatDelay: 3,
+        }}
+        className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 text-amber-600"
+      >
+        <BellRing className="h-4 w-4" />
+      </motion.div>
     </div>
-    <div className="space-y-2">
+
+    <div className="grid grid-cols-3 border-b border-slate-100">
       {[
-        { text: "Due today: Update client deck", tag: "Today", tagColor: "bg-[#FFEEF0] text-[#C9372C]" },
-        { text: "Overdue: Review API spec", tag: "Overdue", tagColor: "bg-[#FFF7D6] text-[#946F00]" },
-        { text: "Assigned to you: QA pass", tag: "New", tagColor: "bg-[#E9F2FF] text-[#0C66E4]" },
-      ].map((row) => (
-        <div key={row.text} className="flex items-center gap-3 rounded border border-[#F1F2F4] bg-[#F7F8F9] px-3 py-2.5">
-          <span className="flex-1 text-[11px] font-medium text-[#172B4D]">{row.text}</span>
-          <span className={`rounded px-2 py-0.5 text-[8px] font-semibold ${row.tagColor}`}>{row.tag}</span>
+        ["03", "New"],
+        ["02", "Due today"],
+        ["01", "Overdue"],
+      ].map(([value, label]) => (
+        <div
+          key={label}
+          className="border-r border-slate-100 px-4 py-3 last:border-r-0"
+        >
+          <p className="text-[14px] font-bold tracking-tight text-slate-800">
+            {value}
+          </p>
+
+          <p className="mt-0.5 text-[8px] text-slate-400">{label}</p>
         </div>
       ))}
     </div>
-  </div>
+
+    <motion.div
+      variants={staggerContainer}
+      initial="hidden"
+      animate="visible"
+      className="space-y-2.5 bg-slate-50/70 p-4 sm:p-5"
+    >
+      {[
+        {
+          title: "Update client presentation",
+          description: "Due today · Product Launch",
+          tag: "Today",
+          icon: Clock,
+          iconClass: "bg-red-50 text-red-500",
+          tagClass: "bg-red-50 text-red-500",
+        },
+        {
+          title: "Review API specification",
+          description: "2 days overdue · Engineering",
+          tag: "Overdue",
+          icon: AlertCircle,
+          iconClass: "bg-amber-50 text-amber-600",
+          tagClass: "bg-amber-50 text-amber-600",
+        },
+        {
+          title: "QA pass assigned to you",
+          description: "Assigned 10 minutes ago",
+          tag: "New",
+          icon: CheckCircle2,
+          iconClass: "bg-blue-50 text-blue-600",
+          tagClass: "bg-blue-50 text-blue-600",
+        },
+        {
+          title: "Sprint review tomorrow",
+          description: "Tomorrow · 10:00 AM",
+          tag: "Reminder",
+          icon: BellRing,
+          iconClass: "bg-violet-50 text-violet-600",
+          tagClass: "bg-violet-50 text-violet-600",
+        },
+      ].map((item) => {
+        const Icon = item.icon;
+
+        return (
+          <motion.div
+            key={item.title}
+            variants={cardAnimation}
+            whileHover={{
+              x: 3,
+              transition: { duration: 0.2 },
+            }}
+            className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm"
+          >
+            <div
+              className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${item.iconClass}`}
+            >
+              <Icon className="h-3.5 w-3.5" />
+            </div>
+
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-[9px] font-semibold text-slate-700">
+                {item.title}
+              </p>
+
+              <p className="mt-0.5 truncate text-[8px] text-slate-400">
+                {item.description}
+              </p>
+            </div>
+
+            <span
+              className={`shrink-0 rounded-md px-2 py-1 text-[7px] font-bold ${item.tagClass}`}
+            >
+              {item.tag}
+            </span>
+          </motion.div>
+        );
+      })}
+    </motion.div>
+
+    <div className="flex items-center justify-between border-t border-slate-200 px-5 py-3">
+      <span className="text-[8px] text-slate-400">
+        Notifications are automatically prioritized
+      </span>
+
+      <span className="text-[8px] font-semibold text-blue-600">
+        View all
+      </span>
+    </div>
+  </motion.div>
 );
+
+/* =========================================================
+   REPORTING MOCKUP
+========================================================= */
 
 const ReportingMock = () => (
-  <div className="marketing-card overflow-hidden p-5 shadow-sm">
-    <div className="mb-4 flex items-center justify-between">
-      <p className="text-[10px] font-semibold uppercase tracking-wider text-[#626F86]">Sprint burndown</p>
-      <span className="flex items-center gap-1 rounded bg-[#DCFFF1] px-2 py-0.5 text-[9px] font-semibold text-[#1F845A]">
-        <TrendingUp className="h-2.5 w-2.5" />
-        On track
-      </span>
+  <motion.div
+    initial={{ opacity: 0, scale: 0.96, y: 12 }}
+    animate={{ opacity: 1, scale: 1, y: 0 }}
+    transition={{
+      duration: 0.55,
+      ease: [0.22, 1, 0.36, 1],
+    }}
+    whileHover={{
+      y: -5,
+      transition: { duration: 0.25 },
+    }}
+    className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_20px_60px_rgba(15,23,42,0.10)]"
+  >
+    <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+      <div>
+        <p className="text-[11px] font-bold text-slate-800">
+          Project overview
+        </p>
+
+        <p className="mt-0.5 text-[8px] text-slate-400">
+          Product Launch · Sprint 24
+        </p>
+      </div>
+
+      <button className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-[8px] font-medium text-slate-500">
+        Last 7 days
+        <ChevronRight className="h-2.5 w-2.5 rotate-90" />
+      </button>
     </div>
-    <div className="flex h-32 items-end gap-2">
-      {[82, 68, 58, 48, 40, 28, 12].map((h, i) => (
-        <div key={i} className="flex-1 rounded-t bg-[#1F845A]" style={{ height: `${h}%`, minHeight: "8px" }} />
+
+    <div className="grid grid-cols-3 border-b border-slate-100">
+      {[
+        {
+          value: "78%",
+          label: "Completed",
+          change: "+12%",
+        },
+        {
+          value: "42",
+          label: "Velocity",
+          change: "+8%",
+        },
+        {
+          value: "8",
+          label: "Members",
+          change: "Active",
+        },
+      ].map((item) => (
+        <div
+          key={item.label}
+          className="border-r border-slate-100 px-4 py-3 last:border-r-0"
+        >
+          <p className="text-[15px] font-bold tracking-tight text-slate-800">
+            {item.value}
+          </p>
+
+          <div className="mt-0.5 flex items-center justify-between gap-2">
+            <span className="text-[8px] text-slate-400">
+              {item.label}
+            </span>
+
+            <span className="hidden text-[7px] font-semibold text-emerald-600 sm:block">
+              {item.change}
+            </span>
+          </div>
+        </div>
       ))}
     </div>
-    <div className="mt-3 flex items-center justify-between border-t border-[#F1F2F4] pt-3 text-[9px] text-[#626F86]">
-      <div className="flex items-center gap-3">
-        <span className="flex items-center gap-1"><Zap className="h-3 w-3 text-[#0C66E4]" />Velocity 42</span>
-        <span className="flex items-center gap-1"><Users className="h-3 w-3 text-[#1F845A]" />Team 8</span>
+
+    <div className="p-5">
+      <div className="mb-4 flex items-center justify-between">
+        <div>
+          <p className="text-[9px] font-bold text-slate-700">
+            Sprint burndown
+          </p>
+
+          <p className="mt-0.5 text-[8px] text-slate-400">
+            Remaining work across the sprint
+          </p>
+        </div>
+
+        <span className="flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-1 text-[7px] font-bold text-emerald-600">
+          <TrendingUp className="h-2.5 w-2.5" />
+          On track
+        </span>
       </div>
-      <span className="flex items-center gap-0.5 font-medium text-[#0C66E4]">
-        Share report <ChevronRight className="h-2.5 w-2.5" />
-      </span>
+
+      <div className="relative h-32 overflow-hidden rounded-lg border border-slate-100 bg-slate-50/60">
+        <div className="absolute inset-0 flex flex-col justify-between p-3">
+          {[0, 1, 2, 3].map((line) => (
+            <div
+              key={line}
+              className="border-t border-dashed border-slate-200"
+            />
+          ))}
+        </div>
+
+        <div className="absolute inset-x-3 bottom-3 top-3 flex items-end gap-2">
+          {[88, 76, 68, 56, 48, 34, 20].map((height, index) => (
+            <motion.div
+              key={index}
+              initial={{
+                height: 0,
+              }}
+              animate={{
+                height: `${height}%`,
+              }}
+              transition={{
+                duration: 0.7,
+                delay: index * 0.07,
+                ease: [0.22, 1, 0.36, 1],
+              }}
+              className="flex h-full flex-1 items-end"
+            >
+              <div className="w-full rounded-t-md bg-emerald-500/80 transition-all hover:bg-emerald-500" />
+            </motion.div>
+          ))}
+        </div>
+      </div>
+
+      <div className="mt-4 grid grid-cols-2 gap-3">
+        <motion.div
+          whileHover={{ y: -2 }}
+          className="rounded-lg border border-slate-100 bg-slate-50 p-3"
+        >
+          <div className="flex items-center gap-2">
+            <Zap className="h-3 w-3 text-blue-600" />
+            <span className="text-[8px] font-semibold text-slate-600">
+              Team velocity
+            </span>
+          </div>
+
+          <p className="mt-1 text-[12px] font-bold text-slate-800">
+            42 pts
+          </p>
+        </motion.div>
+
+        <motion.div
+          whileHover={{ y: -2 }}
+          className="rounded-lg border border-slate-100 bg-slate-50 p-3"
+        >
+          <div className="flex items-center gap-2">
+            <Users className="h-3 w-3 text-emerald-600" />
+            <span className="text-[8px] font-semibold text-slate-600">
+              Workload
+            </span>
+          </div>
+
+          <p className="mt-1 text-[12px] font-bold text-slate-800">
+            Balanced
+          </p>
+        </motion.div>
+      </div>
     </div>
-  </div>
+
+    <div className="flex items-center justify-between border-t border-slate-200 px-5 py-3">
+      <span className="flex items-center gap-1.5 text-[8px] text-slate-400">
+        <Circle className="h-2 w-2 fill-emerald-500 text-emerald-500" />
+        Updated just now
+      </span>
+
+      <button className="flex items-center gap-1 text-[8px] font-semibold text-blue-600">
+        Share report
+        <ArrowUpRight className="h-3 w-3" />
+      </button>
+    </div>
+  </motion.div>
 );
 
+/* =========================================================
+   FEATURE MOCKUP SWITCHER
+========================================================= */
+
 const FeatureMock = ({ active }) => {
-  if (active === "boards") return <BoardsMock />;
-  if (active === "reminders") return <RemindersMock />;
-  return <ReportingMock />;
+  return (
+    <AnimatePresence mode="wait">
+      <motion.div
+        key={active}
+        initial={{
+          opacity: 0,
+          x: 25,
+          scale: 0.98,
+        }}
+        animate={{
+          opacity: 1,
+          x: 0,
+          scale: 1,
+        }}
+        exit={{
+          opacity: 0,
+          x: -25,
+          scale: 0.98,
+        }}
+        transition={{
+          duration: 0.45,
+          ease: [0.22, 1, 0.36, 1],
+        }}
+      >
+        {active === "boards" && <BoardsMock />}
+        {active === "reminders" && <RemindersMock />}
+        {active === "reporting" && <ReportingMock />}
+      </motion.div>
+    </AnimatePresence>
+  );
 };
+
+/* =========================================================
+   FEATURES PAGE
+========================================================= */
 
 const Features = ({ showChrome = true }) => {
   const [active, setActive] = useState("boards");
-  const current = TABS.find((t) => t.id === active);
+
+  const current =
+    TABS.find((tab) => tab.id === active) || TABS[0];
+
+  const CurrentIcon = current.icon;
 
   return (
-    <div className={`${showChrome ? "marketing-page" : "bg-[#F7F8F9]"}`}>
-      {showChrome && <MarketingNavbar activePage="features" />}
+    <div
+      className={`min-h-screen ${
+        showChrome
+          ? "marketing-page bg-white"
+          : "bg-slate-50"
+      }`}
+    >
+      {showChrome && <Navbar activePage="features" />}
 
-      <section className={`mx-auto max-w-6xl px-4 ${showChrome ? "py-16 sm:px-6" : "py-12 sm:px-8"}`}>
-        <div className="mx-auto max-w-2xl text-center">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#0C66E4]">Platform</p>
-          <h1 className="mt-3 text-4xl font-semibold tracking-tight text-[#172B4D] sm:text-5xl">Do more with less busywork</h1>
-          <p className="mt-4 text-[15px] leading-7 text-[#44546F]">AeroPilot handles the tracking and nudges, so your team spends time on the work itself — not on updating status.</p>
+      {/* =====================================================
+          HERO
+      ===================================================== */}
+
+      <section
+        className={`relative overflow-hidden ${
+          showChrome ? "py-16 sm:py-20 lg:py-24" : "py-12"
+        }`}
+      >
+        {/* Background */}
+        <div className="pointer-events-none absolute inset-0">
+          <motion.div
+            animate={{
+              scale: [1, 1.08, 1],
+              opacity: [0.5, 0.7, 0.5],
+            }}
+            transition={{
+              duration: 7,
+              repeat: Infinity,
+              ease: "easeInOut",
+            }}
+            className="absolute left-1/2 top-0 h-[420px] w-[720px] -translate-x-1/2 rounded-full bg-blue-50/70 blur-3xl"
+          />
+
+          <motion.div
+            animate={{
+              x: [0, 20, 0],
+              y: [0, -15, 0],
+            }}
+            transition={{
+              duration: 8,
+              repeat: Infinity,
+              ease: "easeInOut",
+            }}
+            className="absolute left-[8%] top-40 h-32 w-32 rounded-full bg-indigo-50 blur-3xl"
+          />
+
+          <motion.div
+            animate={{
+              x: [0, -20, 0],
+              y: [0, 15, 0],
+            }}
+            transition={{
+              duration: 9,
+              repeat: Infinity,
+              ease: "easeInOut",
+            }}
+            className="absolute right-[8%] top-56 h-40 w-40 rounded-full bg-violet-50 blur-3xl"
+          />
         </div>
 
-        <div className="mt-8 flex flex-wrap items-center justify-center gap-2">
-          {TABS.map((tab) => {
-            const Icon = tab.icon;
-            const isActive = tab.id === active;
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setActive(tab.id)}
-                className={`flex items-center gap-2 rounded border px-4 py-2 text-[13px] font-medium transition ${isActive
-                    ? "border-[#0C66E4] bg-[#E9F2FF] text-[#0C66E4]"
-                    : "border-[#DCDFE4] bg-white text-[#44546F] hover:bg-[#F1F2F4]"
-                  }`}
-              >
-                <Icon className="h-4 w-4" />
-                {tab.label}
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="mt-12 grid items-center gap-10 lg:grid-cols-2 lg:gap-16">
-          <FeatureMock active={active} />
-          <div>
-            <div
-              className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded text-white"
-              style={{ background: current.color }}
+        <div className="relative mx-auto max-w-6xl px-4 sm:px-6">
+          {/* Hero content */}
+          <motion.div
+            initial="hidden"
+            animate="visible"
+            variants={staggerContainer}
+            className="mx-auto max-w-3xl text-center"
+          >
+            <motion.div
+              variants={fadeUp}
+              className="inline-flex items-center gap-2 rounded-full border border-blue-100 bg-blue-50/80 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-blue-600"
             >
-              <current.icon className="h-5 w-5" />
-            </div>
-            <h3 className="text-[24px] font-semibold tracking-tight text-[#172B4D] sm:text-[28px]">
-              {current.title}
-            </h3>
-            <p className="mt-3 text-[15px] leading-7 text-[#44546F]">{current.body}</p>
-            <ul className="mt-6 space-y-3">
-              {current.points.map((point) => (
-                <li key={point} className="flex items-start gap-3 text-[14px] text-[#44546F]">
-                  <span
-                    className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full"
-                    style={{ background: current.soft, color: current.color }}
+              <Sparkles className="h-3 w-3" />
+              Built for modern teams
+            </motion.div>
+
+            <motion.h3
+              variants={fadeUp}
+              className="mt-5 text-3xl font-bold tracking-[-0.04em] text-slate-900 sm:text-5xl lg:text-[48px] lg:leading-[1.05]"
+            >
+              Do more with{" "}
+              <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 bg-clip-text text-transparent">
+                less busy work.
+              </span>
+            </motion.h3>
+
+            <motion.p
+              variants={fadeUp}
+              className="mx-auto mt-5 max-w-2xl text-[15px] leading-7 text-slate-500 sm:text-base"
+            >
+              AeroPilot handles the tracking, reminders and reporting,
+              so your team can spend more time shipping meaningful work
+              and less time updating status.
+            </motion.p>
+          </motion.div>
+
+          {/* =================================================
+              FEATURE TABS
+          ================================================= */}
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{
+              delay: 0.35,
+              duration: 0.55,
+              ease: [0.22, 1, 0.36, 1],
+            }}
+            className="mt-10 flex justify-center"
+          >
+            <div className="inline-flex max-w-full overflow-x-auto rounded-xl border border-slate-200 bg-white p-1.5 shadow-sm">
+              {TABS.map((tab) => {
+                const Icon = tab.icon;
+                const isActive = tab.id === active;
+
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setActive(tab.id)}
+                    className="group relative flex shrink-0 items-center gap-2 rounded-lg px-3.5 py-2.5 text-[11px] font-semibold sm:px-4 sm:text-[12px]"
                   >
-                    <CheckCircle2 className="h-3.5 w-3.5" />
-                  </span>
-                  {point}
-                </li>
-              ))}
-            </ul>
-            <Link
-              to="/"
-              className="group mt-8 inline-flex items-center gap-1.5 text-[14px] font-semibold text-[#0C66E4] hover:text-[#0055CC]"
+                    {/* Animated active background */}
+                    {isActive && (
+                      <motion.span
+                        layoutId="activeFeatureTab"
+                        transition={{
+                          type: "spring",
+                          stiffness: 450,
+                          damping: 32,
+                        }}
+                        className="absolute inset-0 rounded-lg bg-indigo-600 shadow-md shadow-slate-900/10"
+                      />
+                    )}
+
+                    <Icon
+                      className={`relative z-10 h-3.5 w-3.5 transition ${
+                        isActive
+                          ? "text-blue-300"
+                          : "text-slate-400 group-hover:text-slate-600"
+                      }`}
+                    />
+
+                    <span
+                      className={`relative z-10 ${
+                        isActive
+                          ? "text-white"
+                          : "text-slate-500 group-hover:text-slate-900"
+                      }`}
+                    >
+                      {tab.label}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </motion.div>
+
+          {/* =================================================
+              FEATURE CONTENT
+          ================================================= */}
+
+          <div className="mt-14 grid items-center gap-12 lg:grid-cols-[1.15fr_0.85fr] lg:gap-16">
+            {/* Preview */}
+            <motion.div
+              key={`preview-${active}`}
+              initial={{
+                opacity: 0,
+                x: -25,
+              }}
+              animate={{
+                opacity: 1,
+                x: 0,
+              }}
+              transition={{
+                duration: 0.55,
+                ease: [0.22, 1, 0.36, 1],
+              }}
+              className="relative order-2 lg:order-1"
             >
-              Explore this feature
-              <ArrowUpRight className="h-4 w-4 transition-transform group-hover:-translate-y-px group-hover:translate-x-px" />
-            </Link>
+              <motion.div
+                animate={{
+                  scale: [1, 1.015, 1],
+                  opacity: [0.25, 0.4, 0.25],
+                }}
+                transition={{
+                  duration: 5,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+                className="pointer-events-none absolute -inset-5 rounded-[32px] blur-3xl"
+                style={{
+                  backgroundColor: current.soft,
+                }}
+              />
+
+              <div className="relative">
+                <FeatureMock active={active} />
+              </div>
+            </motion.div>
+
+            {/* Content */}
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={active}
+                initial={{
+                  opacity: 0,
+                  x: 25,
+                }}
+                animate={{
+                  opacity: 1,
+                  x: 0,
+                }}
+                exit={{
+                  opacity: 0,
+                  x: -15,
+                }}
+                transition={{
+                  duration: 0.45,
+                  ease: [0.22, 1, 0.36, 1],
+                }}
+                className="order-1 lg:order-2"
+              >
+                <motion.div
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{
+                    duration: 0.45,
+                    ease: [0.22, 1, 0.36, 1],
+                  }}
+                  className="mb-5 flex h-11 w-11 items-center justify-center rounded-xl text-white shadow-lg"
+                  style={{
+                    backgroundColor: current.color,
+                    boxShadow: `0 10px 25px ${current.color}25`,
+                  }}
+                >
+                  <CurrentIcon className="h-5 w-5" />
+                </motion.div>
+
+                <div className="mb-3 flex items-center gap-2">
+                  <span
+                    className="text-[10px] font-bold uppercase tracking-[0.14em]"
+                    style={{
+                      color: current.color,
+                    }}
+                  >
+                    {current.label}
+                  </span>
+
+                  <span className="h-1 w-1 rounded-full bg-slate-300" />
+
+                  <span className="text-[10px] font-medium uppercase tracking-[0.12em] text-slate-400">
+                    AeroPilot
+                  </span>
+                </div>
+
+                <h4 className="max-w-xl text-2xl font-bold tracking-[-0.03em] text-slate-900 sm:text-[36px] sm:leading-[1.12]">
+                  {current.title}
+                </h4>
+
+                <p className="mt-4 max-w-xl text-[14px] leading-7 text-slate-500 sm:text-[15px]">
+                  {current.body}
+                </p>
+
+                <motion.ul
+                  variants={staggerContainer}
+                  initial="hidden"
+                  animate="visible"
+                  className="mt-7 space-y-3.5"
+                >
+                  {current.points.map((point) => (
+                    <motion.li
+                      key={point}
+                      variants={cardAnimation}
+                      className="flex items-center gap-3 text-[13px] font-medium text-slate-600"
+                    >
+                      <motion.span
+                        whileHover={{
+                          scale: 1.12,
+                          rotate: 5,
+                        }}
+                        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full"
+                        style={{
+                          backgroundColor: current.soft,
+                          color: current.color,
+                        }}
+                      >
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                      </motion.span>
+
+                      {point}
+                    </motion.li>
+                  ))}
+                </motion.ul>
+
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{
+                    delay: 0.25,
+                    duration: 0.4,
+                  }}
+                >
+                  <Link
+                    to="/"
+                    className="group mt-8 inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-[12px] font-semibold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-slate-800 hover:shadow-md"
+                  >
+                    Explore this feature
+
+                    <ArrowUpRight className="h-3.5 w-3.5 transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+                  </Link>
+                </motion.div>
+              </motion.div>
+            </AnimatePresence>
           </div>
         </div>
       </section>
 
-      <section className="border-y border-[#DCDFE4] bg-white py-8">
-        <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-center gap-x-10 gap-y-3 px-4">
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-[#8993A4]">
-            Trusted by teams at
-          </span>
-          {["Vercel", "Linear", "Raycast", "Loom", "Ramp"].map((name) => (
-            <span key={name} className="text-[14px] font-semibold text-[#B3BAC5]">
-              {name}
-            </span>
-          ))}
-        </div>
-      </section>
+      {/* =====================================================
+          VALUE STRIP
+      ===================================================== */}
+
+      <motion.section
+        initial="hidden"
+        whileInView="visible"
+        viewport={{
+          once: true,
+          amount: 0.2,
+        }}
+        variants={staggerContainer}
+        className="border-y border-slate-200 bg-slate-50/60"
+      >
+       
+      </motion.section>
 
       {showChrome && <Footer />}
     </div>
@@ -252,3 +1049,4 @@ const Features = ({ showChrome = true }) => {
 };
 
 export default Features;
+

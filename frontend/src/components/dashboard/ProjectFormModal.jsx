@@ -16,15 +16,15 @@ import {
   Trash2,
   Copy,
   Mail,
+  Sparkles,
+  RefreshCw,
+  Wand2,
+  Lightbulb,
 } from "lucide-react";
 import { authAPI } from "../../api/admin";
+import { suggestProjectDescription } from "../../api/groqApi";
 
-// One blank assignment row's shape — each row is one person's own
-// priority / status / timeline for this project.
-// NOTE: `assigned_to` (user id select) has been replaced with
-// `assigned_email` (free-text email). This lets a manager assign a task
-// to someone by email even if they aren't an existing user yet — those
-// emails get merged into the invite list automatically on submit.
+// One blank assignment row's shape
 const emptyAssignment = () => ({
   _key: `row-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
   assigned_email: "",
@@ -58,14 +58,12 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const priorityMeta = (value) => PRIORITIES.find((p) => p.value === value) || PRIORITIES[1];
 
-// Global managers and project owners/managers can edit project fields.
-// Project members only get the limited task update view.
 const ProjectFormModal = ({ isOpen, isEditMode, editingProject, isManager = true, projectRole, onClose, onSubmit }) => {
   const role = projectRole || editingProject?.my_role || (isManager ? "global_manager" : "member");
   const canManageProject = ["global_manager", "admin", "owner", "manager"].includes(role);
   const canManageMembers = ["global_manager", "admin", "owner"].includes(role);
   const canEditProject = canManageProject;
-  // Fields shared across the whole project (same for every assignee)
+
   const [formData, setFormData] = useState({
     summary: "",
     description: "",
@@ -77,7 +75,6 @@ const ProjectFormModal = ({ isOpen, isEditMode, editingProject, isManager = true
     invites: "",
   });
 
-  // Per-user rows: each has its own assigned_email + priority + status + dates
   const [assignments, setAssignments] = useState([emptyAssignment()]);
   const [managerEmail, setManagerEmail] = useState("");
   const [memberEmails, setMemberEmails] = useState([""]);
@@ -90,13 +87,31 @@ const ProjectFormModal = ({ isOpen, isEditMode, editingProject, isManager = true
   const [existingAttachment, setExistingAttachment] = useState(null);
   const [showSummaryLimitPopup, setShowSummaryLimitPopup] = useState(false);
 
+  // ✨ AI states
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState("");
+  const [aiUsed, setAiUsed] = useState(false);
+  const [aiMode, setAiMode] = useState("");
+
   const popupTimeoutRef = useRef(null);
+  const descriptionRef = useRef(null);
 
   const MAX_SUMMARY_LENGTH = 255;
 
-  // Fetch available users — still used to show a "known user" badge and to
-  // power the email autocomplete datalist, even though assignment is now
-  // done by typing an email instead of picking from a dropdown.
+  // ✅ Auto-grow description textarea based on content
+  const autoGrowDescription = () => {
+    const el = descriptionRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.max(112, el.scrollHeight)}px`; // min ~7 lines
+  };
+
+  useEffect(() => {
+    if (isOpen) {
+      autoGrowDescription();
+    }
+  }, [isOpen, formData.description]);
+
   useEffect(() => {
     if (isOpen) {
       const loadUsers = async () => {
@@ -116,13 +131,11 @@ const ProjectFormModal = ({ isOpen, isEditMode, editingProject, isManager = true
     }
   }, [isOpen]);
 
-  // Helper function to safely parse dates
   const formatDateForInput = (dateString) => {
     if (!dateString) return "";
     try {
       const date = new Date(dateString);
       if (isNaN(date.getTime())) return "";
-
       const year = date.getFullYear();
       const month = String(date.getMonth() + 1).padStart(2, "0");
       const day = String(date.getDate()).padStart(2, "0");
@@ -133,7 +146,6 @@ const ProjectFormModal = ({ isOpen, isEditMode, editingProject, isManager = true
     }
   };
 
-  // Populate form when editing
   useEffect(() => {
     if (isEditMode && editingProject) {
       let labelsList = [];
@@ -165,16 +177,12 @@ const ProjectFormModal = ({ isOpen, isEditMode, editingProject, isManager = true
         (Array.isArray(editingProject.tasks) && editingProject.tasks.length > 0 && editingProject.tasks) ||
         null;
 
-      // Resolve an email for a legacy row that only has a numeric assigned_to
-      // (old data saved before this field became email-based).
       const resolveEmail = (a) => {
         if (a.assigned_email) return a.assigned_email;
         if (a.assigned_to && !isNaN(a.assigned_to)) {
           const match = usersList.find((u) => String(u.id) === String(a.assigned_to));
           if (match) return match.email || "";
         }
-        // Fallback: assigned_to might already be an email string from an
-        // even newer backend response shape.
         if (a.assigned_to && typeof a.assigned_to === "string" && a.assigned_to.includes("@")) {
           return a.assigned_to;
         }
@@ -225,6 +233,9 @@ const ProjectFormModal = ({ isOpen, isEditMode, editingProject, isManager = true
       setMemberEmails([""]);
     }
     setError("");
+    setAiError("");
+    setAiUsed(false);
+    setAiMode("");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isEditMode, editingProject, isOpen]);
 
@@ -262,13 +273,54 @@ const ProjectFormModal = ({ isOpen, isEditMode, editingProject, isManager = true
       ...prev,
       [name]: value,
     }));
+
+    // Auto-grow when description changes
+    if (name === "description") {
+      setTimeout(autoGrowDescription, 0);
+    }
+
+    // Reset AI hint when user manually edits description
+    if (name === "description" && aiUsed) {
+      setAiUsed(false);
+      setAiMode("");
+    }
+  };
+
+  // ✨ AI: Generate/Enhance description
+  const handleAISuggestDescription = async () => {
+    const projectName = formData.summary.trim();
+    const existingDesc = formData.description.trim();
+
+    if (!projectName) {
+      setAiError("Please enter a project name first");
+      setTimeout(() => setAiError(""), 3000);
+      return;
+    }
+
+    setAiLoading(true);
+    setAiError("");
+
+    try {
+      const result = await suggestProjectDescription(projectName, existingDesc);
+      if (result?.description) {
+        setFormData((prev) => ({ ...prev, description: result.description }));
+        setAiUsed(true);
+        setAiMode(result.mode || "generated");
+        // Auto-grow after AI inserts text
+        setTimeout(autoGrowDescription, 50);
+      } else {
+        setAiError("AI returned an empty response. Try again.");
+      }
+    } catch (err) {
+      console.error("AI suggest error:", err);
+      setAiError(err?.message || "Failed to generate description. Check your API key.");
+    } finally {
+      setAiLoading(false);
+    }
   };
 
   // ---- Assignment row helpers ----
-
   const updateAssignment = (key, field, value) => {
-    // Extra safety net: even if a disabled input somehow fires onChange,
-    // normal users can only ever mutate status / task_detail.
     if (!canManageProject && field !== "status" && field !== "task_detail") return;
     setAssignments((prev) => prev.map((a) => (a._key === key ? { ...a, [field]: value } : a)));
   };
@@ -278,8 +330,6 @@ const ProjectFormModal = ({ isOpen, isEditMode, editingProject, isManager = true
     setAssignments((prev) => [...prev, emptyAssignment()]);
   };
 
-  // Duplicate a row's priority/status/dates but clear the assignee email, so
-  // the manager can quickly reuse the same timeline for a different person
   const duplicateAssignmentRow = (key) => {
     if (!canManageProject) return;
     setAssignments((prev) => {
@@ -300,7 +350,6 @@ const ProjectFormModal = ({ isOpen, isEditMode, editingProject, isManager = true
 
   const normalizeEmail = (email) => (email || "").trim().toLowerCase();
 
-  // Find a known user by email (for showing name / "existing user" badge)
   const getUserByEmail = (email) => {
     const normalized = normalizeEmail(email);
     if (!normalized) return null;
@@ -338,8 +387,6 @@ const ProjectFormModal = ({ isOpen, isEditMode, editingProject, isManager = true
     }));
   };
 
-  // ---- File ----
-
   const handleFileChange = (e) => {
     if (!canManageProject) return;
     const file = e.target.files[0];
@@ -348,31 +395,21 @@ const ProjectFormModal = ({ isOpen, isEditMode, editingProject, isManager = true
         setError("Only PDF files are allowed");
         return;
       }
-
       const maxSizeInMB = 10;
       const fileSizeInMB = file.size / (1024 * 1024);
       if (fileSizeInMB > maxSizeInMB) {
         setError(`File size must be less than ${maxSizeInMB}MB`);
         return;
       }
-
-      setFormData((prev) => ({
-        ...prev,
-        attachment: file,
-      }));
+      setFormData((prev) => ({ ...prev, attachment: file }));
       setError("");
     }
   };
 
   const handleRemoveFile = () => {
     if (!canManageProject) return;
-    setFormData((prev) => ({
-      ...prev,
-      attachment: null,
-    }));
+    setFormData((prev) => ({ ...prev, attachment: null }));
   };
-
-  // ---- Validation ----
 
   const validate = () => {
     if (!canEditProject && isEditMode) return "";
@@ -404,20 +441,12 @@ const ProjectFormModal = ({ isOpen, isEditMode, editingProject, isManager = true
     setLoading(true);
 
     try {
-      // Each row becomes its own assignment object — different priority,
-      // status and dates per person, all tied to the same project summary.
-      // `assigned_email` replaces the old `assigned_to` user-id field so the
-      // backend can look up an existing user by email, or, if none exists,
-      // create/invite one and attach the assignment once they sign up.
       const normalizedManager = normalizeEmail(managerEmail);
       const normalizedMembers = memberEmails.map(normalizeEmail).filter(Boolean);
       const inviteRoles = {};
       if (normalizedManager) inviteRoles[normalizedManager] = "manager";
       normalizedMembers.forEach((email) => { inviteRoles[email] = "member"; });
 
-      // Any assignee email that isn't a known existing user gets folded
-      // into the invite list automatically, so they actually receive an
-      // invite/notification email instead of silently failing to resolve.
       const existingInvites = formData.invites
         .split(",")
         .map((e) => e.trim())
@@ -431,7 +460,7 @@ const ProjectFormModal = ({ isOpen, isEditMode, editingProject, isManager = true
       let submitData;
       let useFormData = false;
 
-        if (!canEditProject && isEditMode) {
+      if (!canEditProject && isEditMode) {
         await onSubmit({
           description: formData.description.trim(),
           status: formData.status,
@@ -450,7 +479,6 @@ const ProjectFormModal = ({ isOpen, isEditMode, editingProject, isManager = true
         submitData.append("due_date", formData.due_date || "");
         submitData.append("invite_roles", JSON.stringify(inviteRoles));
         submitData.append("invites", mergedInvites);
-        // Backend should read this JSON array and create one assignment per entry
         submitData.append("attachment", formData.attachment);
       } else {
         submitData = {
@@ -481,6 +509,13 @@ const ProjectFormModal = ({ isOpen, isEditMode, editingProject, isManager = true
   const distinctUserCount = new Set(
     assignments.map((a) => normalizeEmail(a.assigned_email)).filter(Boolean)
   ).size;
+
+  const hasDescription = formData.description.trim().length > 0;
+  const buttonLabel = hasDescription
+    ? aiUsed ? "Regenerate" : "Enhance with AI"
+    : "Generate with AI";
+
+  const descriptionCharCount = formData.description.length;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4">
@@ -516,7 +551,6 @@ const ProjectFormModal = ({ isOpen, isEditMode, editingProject, isManager = true
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-6 space-y-8">
-          {/* Error Alert */}
           {error && (
             <div className="flex gap-3 rounded-md bg-red-50 dark:bg-red-950/30 px-4 py-3 border border-red-200 dark:border-red-900">
               <AlertCircle className="h-4 w-4 text-red-500 flex-shrink-0 mt-0.5" />
@@ -524,7 +558,7 @@ const ProjectFormModal = ({ isOpen, isEditMode, editingProject, isManager = true
             </div>
           )}
 
-          {/* Basic Information (shared across all assignees) */}
+          {/* Basic Information */}
           <section className="space-y-4">
             <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
               Project details
@@ -565,20 +599,132 @@ const ProjectFormModal = ({ isOpen, isEditMode, editingProject, isManager = true
               </p>
             </div>
 
+            {/* ✨ DESCRIPTION with premium AI UI + auto-grow */}
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
-                Description
-                <span className="text-xs text-slate-400 dark:text-slate-500 font-normal ml-1.5">Optional</span>
-              </label>
-              <textarea
-                name="description"
-                value={formData.description}
-                onChange={handleChange}
-                disabled={!canEditProject}
-                placeholder="Goals, scope, and key requirements..."
-                rows="3"
-                className="w-full px-3 py-2 rounded-md border border-slate-300 dark:border-slate-700 text-sm text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-950 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-200 dark:focus:ring-indigo-900/50 focus:border-indigo-500 transition-shadow resize-none disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed dark:disabled:bg-slate-900 dark:disabled:text-slate-500"
-              />
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                  Description
+                  <span className="text-xs text-slate-400 dark:text-slate-500 font-normal ml-1.5">Optional</span>
+                </label>
+
+                {canEditProject && (
+                  <button
+                    type="button"
+                    onClick={handleAISuggestDescription}
+                    disabled={aiLoading || !formData.summary.trim()}
+                    className="group relative inline-flex items-center gap-1.5 overflow-hidden rounded-full bg-gradient-to-r from-violet-500 via-indigo-500 to-blue-500 px-3 py-1.5 text-xs font-semibold text-white shadow-md shadow-violet-500/20 transition-all hover:shadow-lg hover:shadow-violet-500/40 hover:scale-[1.03] active:scale-[0.98] disabled:from-slate-300 disabled:via-slate-300 disabled:to-slate-400 disabled:cursor-not-allowed disabled:shadow-none disabled:hover:scale-100 dark:disabled:from-slate-700 dark:disabled:via-slate-700 dark:disabled:to-slate-800"
+                    title={!formData.summary.trim() ? "Enter a project name first" : buttonLabel}
+                  >
+                    {!aiLoading && formData.summary.trim() && (
+                      <span className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/30 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
+                    )}
+
+                    {aiLoading ? (
+                      <>
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                        <span>Generating...</span>
+                      </>
+                    ) : aiUsed ? (
+                      <>
+                        <RefreshCw className="h-3 w-3" />
+                        <span>Regenerate</span>
+                      </>
+                    ) : hasDescription ? (
+                      <>
+                        <Wand2 className="h-3 w-3" />
+                        <span>Enhance with AI</span>
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="h-3 w-3" />
+                        <span>Generate with AI</span>
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
+
+              <p className="mb-2 text-[11px] text-slate-400 dark:text-slate-500 flex items-center gap-1">
+                <Lightbulb className="h-3 w-3" />
+                {hasDescription
+                  ? "AI will enhance your existing description — or write fresh if it's too short."
+                  : "Write your own, or let AI generate a professional description from the project name."}
+              </p>
+
+              <div className="relative">
+                <div
+                  className={`rounded-lg p-[1.5px] transition-all duration-300 ${
+                    aiLoading
+                      ? "bg-gradient-to-r from-violet-400 via-indigo-400 to-blue-400 animate-pulse"
+                      : aiUsed
+                      ? "bg-gradient-to-r from-violet-300 to-indigo-300 dark:from-violet-800 dark:to-indigo-800"
+                      : "bg-transparent"
+                  }`}
+                >
+                  <textarea
+                    ref={descriptionRef}
+                    name="description"
+                    value={formData.description}
+                    onChange={handleChange}
+                    disabled={!canEditProject || aiLoading}
+                    placeholder={
+                      formData.summary.trim()
+                        ? hasDescription
+                          ? ""
+                          : "Click 'Generate with AI' to auto-write, or type your own..."
+                        : "Enter a project name first, then let AI write it for you..."
+                    }
+                    rows="4"
+                    className={`w-full px-3 py-2.5 rounded-md border text-sm leading-relaxed text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-950 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 transition-all resize-none overflow-hidden disabled:cursor-not-allowed ${
+                      aiLoading
+                        ? "border-violet-300 dark:border-violet-700 focus:ring-violet-200 dark:focus:ring-violet-900/50 opacity-70"
+                        : aiUsed
+                        ? "border-violet-200 dark:border-violet-900 focus:ring-violet-200 dark:focus:ring-violet-900/50 focus:border-violet-500"
+                        : "border-slate-300 dark:border-slate-700 focus:ring-indigo-200 dark:focus:ring-indigo-900/50 focus:border-indigo-500"
+                    } disabled:bg-slate-100 disabled:text-slate-500 dark:disabled:bg-slate-900 dark:disabled:text-slate-500`}
+                    style={{ minHeight: "112px", height: "auto" }}
+                  />
+                </div>
+
+                {aiLoading && (
+                  <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-md bg-white/60 dark:bg-slate-950/60 backdrop-blur-[1px]">
+                    <div className="flex items-center gap-2 rounded-full bg-gradient-to-r from-violet-50 to-indigo-50 dark:from-violet-950/60 dark:to-indigo-950/60 px-3.5 py-2 shadow-sm border border-violet-200 dark:border-violet-800">
+                      <Sparkles className="h-3.5 w-3.5 text-violet-600 dark:text-violet-400 animate-pulse" />
+                      <span className="text-xs font-medium text-violet-700 dark:text-violet-300">
+                        AI is {hasDescription ? "enhancing" : "writing"}...
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Character counter + AI success badge row */}
+              <div className="mt-2 flex items-center justify-between min-h-[20px]">
+                {aiUsed && !aiLoading && !aiError ? (
+                  <div className="flex items-center gap-1.5 text-xs font-medium text-violet-600 dark:text-violet-400">
+                    <div className="flex h-4 w-4 items-center justify-center rounded-full bg-violet-100 dark:bg-violet-900/40">
+                      <Sparkles className="h-2.5 w-2.5" />
+                    </div>
+                    <span>
+                      {aiMode === "enhanced"
+                        ? "Enhanced by AI — feel free to edit"
+                        : "Generated by AI — feel free to edit"}
+                    </span>
+                  </div>
+                ) : (
+                  <span />
+                )}
+                <span className="text-[11px] text-slate-400 dark:text-slate-500 tabular-nums">
+                  {descriptionCharCount} characters
+                </span>
+              </div>
+
+              {aiError && (
+                <div className="mt-1 flex items-center gap-1.5 rounded-md bg-red-50 dark:bg-red-950/30 px-2.5 py-1.5 text-xs text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/60">
+                  <AlertCircle className="h-3 w-3 flex-shrink-0" />
+                  <span>{aiError}</span>
+                </div>
+              )}
             </div>
 
             <div>
@@ -636,7 +782,7 @@ const ProjectFormModal = ({ isOpen, isEditMode, editingProject, isManager = true
             </div>
           </section>
 
-          {/* Project team: one manager and multiple members */}
+          {/* Project team */}
           {!isEditMode && canManageMembers && (
             <section className="space-y-4">
               <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
@@ -685,298 +831,10 @@ const ProjectFormModal = ({ isOpen, isEditMode, editingProject, isManager = true
             </section>
           )}
 
-          {/* Legacy task rows are kept for editing old records only. New tasks are created in Tasks. */}
-          {false ? (
-          <section className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                Tasks
-              </h3>
-              {loadingUsers && (
-                <span className="text-xs text-slate-400 flex items-center gap-1.5">
-                  <Loader2 className="h-3 w-3 animate-spin" /> Loading users
-                </span>
-              )}
-            </div>
+          {/* Legacy task rows — hidden */}
+          {false ? <section /> : null}
 
-            {/* Datalist powers email autocomplete for known users */}
-            <datalist id="known-user-emails">
-              {usersList
-                .filter((u) => u.email)
-                .map((u) => (
-                  <option key={u.id} value={u.email} />
-                ))}
-            </datalist>
-
-            <div className="space-y-3">
-              {assignments.map((row, index) => {
-                const normalizedEmail = normalizeEmail(row.assigned_email);
-                const duplicateWarning = normalizedEmail && assignedCounts[normalizedEmail] > 1;
-                const meta = priorityMeta(row.priority);
-                const matchedUser = getUserByEmail(row.assigned_email);
-                const emailLooksValid = !row.assigned_email || EMAIL_RE.test(normalizedEmail);
-
-                return (
-                  <div
-                    key={row._key}
-                    className={`rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 border-l-4 ${meta.border.replace(
-                      "border-",
-                      "border-l-"
-                    )}`}
-                    style={{ borderRadius: "8px" }}
-                  >
-                    <div className="p-4">
-                      {/* Row header */}
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center gap-2">
-                          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-[11px] font-semibold text-slate-600 dark:text-slate-300">
-                            {index + 1}
-                          </span>
-                          <p className="text-sm font-medium text-slate-900 dark:text-white">
-                            {row.assigned_email ? getRowLabel(row.assigned_email) : `Task ${index + 1}`}
-                          </p>
-                        </div>
-                        {canManageProject && (
-                          <div className="flex items-center gap-1">
-                            <button
-                              type="button"
-                              onClick={() => duplicateAssignmentRow(row._key)}
-                              title="Duplicate for another user"
-                              aria-label="Duplicate task"
-                              className="rounded-md p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-300 transition-colors"
-                            >
-                              <Copy className="h-3.5 w-3.5" />
-                            </button>
-                            {assignments.length > 1 && (
-                              <button
-                                type="button"
-                                onClick={() => removeAssignmentRow(row._key)}
-                                title="Remove task"
-                                aria-label="Remove task"
-                                className="rounded-md p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40 dark:hover:text-red-400 transition-colors"
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </button>
-                            )}
-                          </div>
-                        )}
-                      </div>
-
-                      {duplicateWarning && (
-                        <div className="mb-3 flex items-center gap-2 rounded-md bg-amber-50 dark:bg-amber-950/20 px-3 py-2 border border-amber-200 dark:border-amber-900/40">
-                          <AlertCircle className="h-3.5 w-3.5 text-amber-500 flex-shrink-0" />
-                          <p className="text-xs text-amber-800 dark:text-amber-300">
-                            {row.assigned_email} already has another task in this project.
-                          </p>
-                        </div>
-                      )}
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {/* Assign to — now an email field instead of a user-id select */}
-                        <div className="md:col-span-2">
-                          <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1.5">
-                            Assign to (email)
-                          </label>
-                          <div className="relative">
-                            <Mail className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
-                            <input
-                              type="email"
-                              list="known-user-emails"
-                              value={row.assigned_email}
-                              onChange={(e) => updateAssignment(row._key, "assigned_email", e.target.value)}
-                              disabled={!canManageProject}
-                              placeholder="teammate@example.com"
-                              className={`w-full pl-9 pr-3 py-2 rounded-md border text-sm text-slate-900 dark:text-slate-200 bg-white dark:bg-slate-900 focus:outline-none focus:ring-2 transition-shadow disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed dark:disabled:bg-slate-800 dark:disabled:text-slate-500 ${emailLooksValid
-                                ? "border-slate-300 dark:border-slate-700 focus:ring-indigo-200 dark:focus:ring-indigo-900/50 focus:border-indigo-500"
-                                : "border-red-400 focus:ring-red-200 dark:border-red-800"
-                                }`}
-                            />
-                          </div>
-                          {row.assigned_email && !emailLooksValid && (
-                            <p className="mt-1.5 text-xs text-red-600 dark:text-red-400">
-                              Enter a valid email address
-                            </p>
-                          )}
-                          {row.assigned_email && emailLooksValid && (
-                            <div className="mt-2 flex items-center gap-2.5">
-                              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-[10px] font-semibold text-slate-600 dark:text-slate-300">
-                                {row.assigned_email.charAt(0).toUpperCase()}
-                              </div>
-                              {matchedUser ? (
-                                <span className="text-xs text-slate-500 dark:text-slate-400">
-                                  {matchedUser.full_name || matchedUser.username}
-                                  {matchedUser.role === "manager" && (
-                                    <span className="ml-2 inline-flex items-center rounded-full bg-violet-50 dark:bg-violet-950/40 px-2 py-0.5 text-[10px] font-medium text-violet-700 dark:text-violet-400">
-                                      Manager
-                                    </span>
-                                  )}
-                                </span>
-                              ) : (
-                                <span className="text-xs text-slate-500 dark:text-slate-400 inline-flex items-center gap-1">
-                                  Not a user yet — will be invited by email
-                                  <span className="inline-flex items-center rounded-full bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 text-[10px] font-medium text-emerald-700 dark:text-emerald-400">
-                                    New invite
-                                  </span>
-                                </span>
-                              )}
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Project role */}
-                        <div>
-                          <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1.5">
-                            Project role (one manager maximum)
-                          </label>
-                          <select
-                            value={row.role}
-                            onChange={(e) => updateAssignment(row._key, "role", e.target.value)}
-                            disabled={!canManageProject}
-                            className="w-full px-3 py-2 rounded-md border border-slate-300 dark:border-slate-700 text-sm text-slate-900 dark:text-slate-200 bg-white dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-200 dark:focus:ring-indigo-900/50 focus:border-indigo-500 transition-shadow disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
-                          >
-                            <option value="member">Member</option>
-                            <option
-                              value="manager"
-                              disabled={assignments.some(
-                                (assignment) => assignment._key !== row._key && assignment.role === "manager"
-                              )}
-                            >
-                              Manager
-                            </option>
-                          </select>
-                        </div>
-
-                        {/* Priority */}
-                        <div>
-                          <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1.5">
-                            Priority
-                          </label>
-                          <div className="grid grid-cols-4 gap-1.5">
-                            {PRIORITIES.map((p) => {
-                              const active = row.priority === p.value;
-                              return (
-                                <button
-                                  key={p.value}
-                                  type="button"
-                                  onClick={() => updateAssignment(row._key, "priority", p.value)}
-                                  disabled={!canManageProject}
-                                  className={`flex items-center justify-center gap-1.5 rounded-md border px-2 py-2 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-70 ${active
-                                    ? `${p.bg} ${p.border} ${p.text} dark:bg-slate-800 dark:border-slate-600`
-                                    : "border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800"
-                                    }`}
-                                >
-                                  <span className={`h-1.5 w-1.5 rounded-full ${p.dot}`} />
-                                  {p.label}
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </div>
-
-                        {/* Status — always editable, even for normal users */}
-                        <div>
-                          <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1.5">
-                            Status
-                          </label>
-                          <select
-                            value={row.status}
-                            onChange={(e) => updateAssignment(row._key, "status", e.target.value)}
-                            className="w-full px-3 py-2 rounded-md border border-slate-300 dark:border-slate-700 text-sm text-slate-900 dark:text-slate-200 bg-white dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-200 dark:focus:ring-indigo-900/50 focus:border-indigo-500 transition-shadow"
-                          >
-                            {STATUSES.map((s) => (
-                              <option key={s.value} value={s.value}>
-                                {s.label}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-
-                        {/* Start date */}
-                        <div>
-                          <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1.5">
-                            Start date
-                          </label>
-                          <div className="relative">
-                            <Calendar className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
-                            <input
-                              type="date"
-                              value={row.start_date}
-                              onChange={(e) => updateAssignment(row._key, "start_date", e.target.value)}
-                              disabled={!canManageProject}
-                              className="w-full pl-9 pr-3 py-2 rounded-md border border-slate-300 dark:border-slate-700 text-sm text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-950 focus:outline-none focus:ring-2 focus:ring-indigo-200 dark:focus:ring-indigo-900/50 focus:border-indigo-500 transition-shadow disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed dark:disabled:bg-slate-900 dark:disabled:text-slate-500"
-                            />
-                          </div>
-                        </div>
-
-                        {/* Due date */}
-                        <div>
-                          <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1.5">
-                            Due date
-                          </label>
-                          <div className="relative">
-                            <Calendar className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
-                            <input
-                              type="date"
-                              value={row.due_date}
-                              onChange={(e) => updateAssignment(row._key, "due_date", e.target.value)}
-                              disabled={!canManageProject}
-                              className="w-full pl-9 pr-3 py-2 rounded-md border border-slate-300 dark:border-slate-700 text-sm text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-950 focus:outline-none focus:ring-2 focus:ring-indigo-200 dark:focus:ring-indigo-900/50 focus:border-indigo-500 transition-shadow disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed dark:disabled:bg-slate-900 dark:disabled:text-slate-500"
-                            />
-                          </div>
-                        </div>
-
-                        {/* Task detail — always editable, even for normal users */}
-                        <div className="md:col-span-2">
-                          <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1.5">
-                            Task detail
-                            <span className="text-slate-400 dark:text-slate-500 font-normal ml-1.5">Optional</span>
-                          </label>
-                          <textarea
-                            value={row.task_detail}
-                            onChange={(e) => updateAssignment(row._key, "task_detail", e.target.value)}
-                            rows="2"
-                            placeholder="What this person needs to do..."
-                            className="w-full px-3 py-2 rounded-md border border-slate-300 dark:border-slate-700 text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 bg-white dark:bg-slate-950 focus:outline-none focus:ring-2 focus:ring-indigo-200 dark:focus:ring-indigo-900/50 focus:border-indigo-500 transition-shadow resize-none"
-                          />
-                        </div>
-                      </div>
-
-                      {row.start_date && row.due_date && (
-                        <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">
-                          {Math.max(
-                            0,
-                            Math.ceil((new Date(row.due_date) - new Date(row.start_date)) / (1000 * 60 * 60 * 24))
-                          )}{" "}
-                          day duration
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Add another assignment — managers only */}
-            {canManageProject && (
-              <button
-                type="button"
-                onClick={addAssignmentRow}
-                className="flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-slate-300 dark:border-slate-700 py-2.5 text-sm font-medium text-slate-600 dark:text-slate-400 hover:border-indigo-400 hover:text-indigo-600 dark:hover:border-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50/50 dark:hover:bg-indigo-950/10 transition-colors"
-              >
-                <Plus className="h-4 w-4" /> Add another task
-              </button>
-            )}
-
-            {/* Summary strip */}
-            <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
-              <Users className="h-3.5 w-3.5" />
-              {assignments.length} task{assignments.length !== 1 ? "s" : ""} · {distinctUserCount} user
-              {distinctUserCount !== 1 ? "s" : ""}
-            </div>
-          </section>
-          ) : null}
-
-          {/* File Attachment (shared) */}
+          {/* File Attachment */}
           <section className="space-y-4">
             <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
               Attachment
@@ -1025,21 +883,10 @@ const ProjectFormModal = ({ isOpen, isEditMode, editingProject, isManager = true
                       </div>
                     </div>
                     <div className="flex gap-1">
-                      <a
-                        href={`/uploads/projects/${existingAttachment}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="rounded-md p-1.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700 dark:hover:bg-slate-700 dark:hover:text-slate-200 transition-colors"
-                        title="View file"
-                      >
+                      <a href={`/uploads/projects/${existingAttachment}`} target="_blank" rel="noopener noreferrer" className="rounded-md p-1.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700 dark:hover:bg-slate-700 dark:hover:text-slate-200 transition-colors" title="View file">
                         <Eye className="h-4 w-4" />
                       </a>
-                      <a
-                        href={`/uploads/projects/${existingAttachment}`}
-                        download
-                        className="rounded-md p-1.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700 dark:hover:bg-slate-700 dark:hover:text-slate-200 transition-colors"
-                        title="Download file"
-                      >
+                      <a href={`/uploads/projects/${existingAttachment}`} download className="rounded-md p-1.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700 dark:hover:bg-slate-700 dark:hover:text-slate-200 transition-colors" title="Download file">
                         <Download className="h-4 w-4" />
                       </a>
                     </div>
@@ -1062,7 +909,7 @@ const ProjectFormModal = ({ isOpen, isEditMode, editingProject, isManager = true
                     </details>
                   )}
                 </div>
-                    ) : canManageProject ? (
+              ) : canManageProject ? (
                 <label className="flex flex-col items-center justify-center w-full px-4 py-8 rounded-md border border-dashed border-slate-300 dark:border-slate-700 cursor-pointer hover:border-indigo-400 dark:hover:border-indigo-600 hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors">
                   <Upload className="h-5 w-5 text-slate-400 mb-2" />
                   <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
@@ -1077,7 +924,7 @@ const ProjectFormModal = ({ isOpen, isEditMode, editingProject, isManager = true
             </div>
           </section>
 
-          {/* Labels (shared) */}
+          {/* Labels */}
           <section className="space-y-4">
             <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
               Labels
@@ -1154,7 +1001,7 @@ const ProjectFormModal = ({ isOpen, isEditMode, editingProject, isManager = true
                 : canManageProject
                   ? isEditMode
                     ? "Update project"
-                    : `Create project (${assignments.length})`
+                    : `Create project`
                   : "Save changes"}
             </button>
           </div>

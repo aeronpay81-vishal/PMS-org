@@ -219,7 +219,7 @@ const Dashboard = ({ user, onNavigate }) => {
         const tasksRes = await tasksAPI.getAll();
         const tData = tasksRes?.data || tasksRes || [];
         setTasks(Array.isArray(tData) ? tData : []);
-      } catch {}
+      } catch { }
     } catch (err) {
       throw new Error(err?.message || "Failed to save project");
     }
@@ -632,11 +632,10 @@ const Dashboard = ({ user, onNavigate }) => {
                         type="button"
                         onClick={() => handleQuickTaskStatus(task.id, "todo")}
                         disabled={isTodo}
-                        className={`rounded px-2 py-1 text-[11px] font-medium disabled:cursor-default ${
-                          isTodo
+                        className={`rounded px-2 py-1 text-[11px] font-medium disabled:cursor-default ${isTodo
                             ? "bg-[#F1F2F4] text-[#172B4D] dark:bg-slate-800 dark:text-white"
                             : "text-[#44546F] hover:bg-[#F1F2F4] dark:text-slate-400 dark:hover:bg-slate-800"
-                        }`}
+                          }`}
                       >
                         To do
                       </button>
@@ -644,11 +643,10 @@ const Dashboard = ({ user, onNavigate }) => {
                         type="button"
                         onClick={() => handleQuickTaskStatus(task.id, "in_progress")}
                         disabled={isInProgress}
-                        className={`rounded px-2 py-1 text-[11px] font-medium disabled:cursor-default ${
-                          isInProgress
+                        className={`rounded px-2 py-1 text-[11px] font-medium disabled:cursor-default ${isInProgress
                             ? "bg-[#FFF7D6] text-[#946F00] dark:bg-amber-950/50 dark:text-amber-300"
                             : "text-[#946F00] hover:bg-[#FFF7D6] dark:text-amber-400 dark:hover:bg-amber-950/40"
-                        }`}
+                          }`}
                       >
                         In progress
                       </button>
@@ -656,11 +654,10 @@ const Dashboard = ({ user, onNavigate }) => {
                         type="button"
                         onClick={() => handleQuickTaskStatus(task.id, "done")}
                         disabled={isDone}
-                        className={`rounded px-2 py-1 text-[11px] font-medium disabled:cursor-default ${
-                          isDone
+                        className={`rounded px-2 py-1 text-[11px] font-medium disabled:cursor-default ${isDone
                             ? "bg-[#DCFFF1] text-[#1F845A] dark:bg-emerald-950/50 dark:text-emerald-300"
                             : "text-[#1F845A] hover:bg-[#DCFFF1] dark:text-emerald-400 dark:hover:bg-emerald-950/40"
-                        }`}
+                          }`}
                       >
                         Done
                       </button>
@@ -732,25 +729,23 @@ const Dashboard = ({ user, onNavigate }) => {
                 return (
                   <div key={item.id} className="relative pl-5">
                     <span
-                      className={`absolute left-0 top-1.5 h-2 w-2 rounded-sm ring-4 ring-white dark:ring-slate-900 ${
-                        meta.done
+                      className={`absolute left-0 top-1.5 h-2 w-2 rounded-sm ring-4 ring-white dark:ring-slate-900 ${meta.done
                           ? "bg-[#1F845A]"
                           : item.status === "in_progress" || item.status === "active"
                             ? "bg-[#0C66E4]"
                             : "bg-[#E2B203]"
-                      }`}
+                        }`}
                     />
                     <p className="text-[13px] font-medium text-[#172B4D] dark:text-white">{item.title}</p>
                     <div className="mt-0.5 flex items-center justify-between gap-2">
                       <p className="text-[12px] text-[#8993A4]">{formatShortDate(item.date)}</p>
                       <span
-                        className={`text-[10px] font-bold uppercase ${
-                          meta.done
+                        className={`text-[10px] font-bold uppercase ${meta.done
                             ? "text-[#1F845A]"
                             : item.status === "in_progress" || item.status === "active"
                               ? "text-[#0C66E4]"
                               : "text-[#946F00]"
-                        }`}
+                          }`}
                       >
                         {meta.label}
                       </span>

@@ -103,4 +103,4 @@ def get_report(project_id, report_id):
 def delete_report(project_id, report_id):
     """Delete a report"""
     current_user_id = get_current_user_id()
-    return ProjectController.delete_report(current_user_id, project_id, report_id)
+    return ProjectController.delete_report(current_user_id, project_id, report_id)

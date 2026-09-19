@@ -244,8 +244,9 @@ export const aiClient = {
             system,
             jsonMode: true,
             prompt:
-                'Generate exactly 3 recommended actions for the project manager based on the project data. Respond ONLY with valid JSON in this exact structure: ' +
-                '{"actions": [{"type": "danger", "title": "short title", "description": "one sentence action item", "action": "2-3 word button label"}]}. ' +
+                'Generate exactly 3 recommended actions for the project manager based only on the project data above. Keep each recommendation specific to the real tasks/projects in the data. ' +
+                'Respond ONLY with valid JSON in this exact structure: ' +
+                '{"actions": [{"type": "danger", "title": "short title", "description": "one sentence action item with actual project/task names", "action": "2-3 word button label"}]}. ' +
                 'type must be one of: "danger", "warning", "success".',
         });
         return result.actions || [];
@@ -264,11 +265,10 @@ export const aiClient = {
             system,
             maxTokens: 1000,
             prompt:
-                `Answer this question in detail based on the project data above: "${question}"\n\n` +
-                "Write a clear, well-structured answer (roughly 4-8 sentences, or a short list of bullet points " +
-                "if that fits the question better). Reference specific project names, task titles, exact dates, " +
-                "priorities, and assignee names wherever relevant. If the data doesn't contain enough information " +
-                "to fully answer, say exactly what's missing instead of guessing.",
+                `Answer this question based only on the project data above: "${question}"\n\n` +
+                "Keep it simple and very specific to the project data. Use 4-6 bullet points maximum, or 4-6 simple sentences if the question is better in prose. " +
+                "Name the real project, task names, statuses, dates, and assignees when available. Do not use generic phrases like 'a few tasks' or 'some issues'. " +
+                "If the data is missing, say exactly what is missing instead of guessing.",
         });
     },
 

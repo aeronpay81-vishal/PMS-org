@@ -9,6 +9,9 @@ import HowItWork from './pages/HowItWork'
 import Pricing from './pages/Pricing'
 import Faq from './pages/Faq'
 import Contact from './pages/Contact'
+import Blog from './pages/Blog'
+import BlogPost from './pages/BlogPost'
+import Privacy from './pages/Privacy.jsx'
 function App() {
   const [auth, setAuth] = useState(() => {
     const storedUser = authAPI.getStoredUser()
@@ -56,9 +59,11 @@ function App() {
         <Route path="/pricing" element={<Pricing />} />
         <Route path="/faq" element={<Faq />} />
         <Route path="/contact" element={<Contact />} />
-
+        <Route path="/blog" element={<Blog />} />
+        <Route path="/blog/:slug" element={<BlogPost />} />
         {/* Catch all - Redirect to home */}
         <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="/privacy" element={<Privacy />} />
 
       </Routes>
     </BrowserRouter>

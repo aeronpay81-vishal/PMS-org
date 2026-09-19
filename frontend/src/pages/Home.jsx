@@ -5,7 +5,7 @@ import Pricing from "./Pricing";
 import Faq from "./Faq";
 import Contact from "./Contact";
 import Footer from "./Footer";
-
+import AIAssistant from "./Aiassistent";
 const Home = ({ onLogin }) => (
   <main className="bg-[#F7F8F9]">
     <Login onLogin={onLogin} showFooter={false} />
@@ -29,6 +29,7 @@ const Home = ({ onLogin }) => (
     <section id="contact">
       <Contact showChrome={false} />
     </section>
+    <AIAssistant />
     <Footer />
   </main>
 );

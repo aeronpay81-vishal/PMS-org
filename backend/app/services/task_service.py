@@ -130,6 +130,10 @@ class TaskService:
         db.session.add(task)
         db.session.commit()
 
+        if task.assigned_to:
+            from app.services.notification_service import NotificationService
+            NotificationService.notify_task_assignment(task.id, task.assigned_to)
+
         return task.to_dict()
 
     @staticmethod
@@ -263,6 +267,7 @@ class TaskService:
         if 'attachment' in data and can_manage_full_task:
             task.attachment = data.get('attachment')
 
+        previous_assignee = task.assigned_to
         if 'assigned_to' in data and can_manage_full_task:
             task.assigned_to = TaskService._validate_assignment(
                 user_id, data.get('assigned_to'), project_id=task.project_id
@@ -273,6 +278,9 @@ class TaskService:
 
         task.updated_at = datetime.utcnow()
         db.session.commit()
+        if task.assigned_to and task.assigned_to != previous_assignee:
+            from app.services.notification_service import NotificationService
+            NotificationService.notify_task_assignment(task.id, task.assigned_to)
         return task.to_dict()
 
     @staticmethod

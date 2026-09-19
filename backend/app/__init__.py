@@ -39,6 +39,7 @@ def create_app():
     from app.routes.task_extra import extra_bp
     from app.routes.analytics import analytics_bp
     from app.routes.subtask import subtask_bp
+    from app.routes.contact import contact_bp
 
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(project_bp, url_prefix='/api/projects')
@@ -48,6 +49,7 @@ def create_app():
     app.register_blueprint(extra_bp, url_prefix='/api')
     app.register_blueprint(analytics_bp, url_prefix='/api')
     app.register_blueprint(subtask_bp, url_prefix='/api')
+    app.register_blueprint(contact_bp, url_prefix='/api')
 
     # Add file serving route for uploads
     @app.route('/uploads/<path:filepath>')
@@ -60,7 +62,7 @@ def create_app():
             return {'error': 'File not found'}, 404
 
     # Import models so SQLAlchemy creates all tables
-    from app.models import User, Project, ProjectReport, ProjectMember, ProjectInvitation, Task, Subtask, Notification, TaskComment, TaskActivity, TimeEntry, EmailVerification  # noqa: F401
+    from app.models import User, Project, ProjectReport, ProjectMember, ProjectInvitation, Task, Subtask, Notification, TaskComment, TaskActivity, TimeEntry, EmailVerification, ContactMessage  # noqa: F401
 
     # Create database tables and auto-migrate columns if needed
     with app.app_context():

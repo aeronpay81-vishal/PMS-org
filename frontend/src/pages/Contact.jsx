@@ -1,4 +1,7 @@
 import { useState } from 'react'
+import { contactAPI } from '../api/contact'
+import Navbar from '../components/navigation/Navbar'
+import Footer from './Footer'
 import {
     LayoutDashboard,
     Menu,
@@ -18,193 +21,13 @@ import {
     Briefcase,
 } from 'lucide-react'
 
-// ── Navbar ────────────────────────────────────────────────────────────
-
-const Navbar = () => {
-    const [navOpen, setNavOpen] = useState(false)
-    return (
-        <header className="sticky top-0 z-30 border-b border-slate-200/70 bg-white/85 backdrop-blur-xl">
-            <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
-                <div className="flex items-center gap-2.5">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white shadow-lg shadow-indigo-500/25">
-                        <LayoutDashboard className="h-4 w-4" />
-                    </div>
-                    <span className="text-[15px] font-semibold tracking-tight text-slate-900">
-                        AeroPilot
-                    </span>
-                </div>
-                <nav className="hidden items-center gap-1 md:flex">
-                    {['Features', 'How it works', 'Pricing', 'FAQ', 'Contact'].map(
-                        (item) => (
-                            <a
-                                key={item}
-                                href={`/${item.toLowerCase().replace(/\s+/g, '-')}`}
-                                className={`rounded-full px-3.5 py-1.5 text-[13px] font-medium transition-all ${item === 'Contact'
-                                    ? 'bg-slate-100 text-slate-900'
-                                    : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
-                                    }`}
-                            >
-                                {item}
-                            </a>
-                        )
-                    )}
-                </nav>
-                <div className="hidden items-center gap-4 md:flex">
-                    <a
-                        href="/login"
-                        className="text-[13px] font-medium text-slate-500 transition-colors hover:text-slate-900"
-                    >
-                        Sign in
-                    </a>
-                    <a
-                        href="/signup"
-                        className="group flex h-8 items-center gap-1 rounded-full bg-slate-900 px-4 text-[13px] font-medium text-white transition-all hover:bg-slate-800 active:scale-95"
-                    >
-                        Get started
-                        <ArrowUpRight className="h-3 w-3 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
-                    </a>
-                </div>
-                <button
-                    type="button"
-                    onClick={() => setNavOpen((v) => !v)}
-                    className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-600 transition-colors hover:bg-slate-100 md:hidden"
-                >
-                    {navOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
-                </button>
-            </div>
-            {navOpen && (
-                <div className="border-t border-slate-200 bg-white px-5 py-3 md:hidden">
-                    <div className="flex flex-col gap-1">
-                        {['Features', 'How it works', 'Pricing', 'FAQ', 'Contact'].map(
-                            (item) => (
-                                <a
-                                    key={item}
-                                    href={`/${item.toLowerCase().replace(/\s+/g, '-')}`}
-                                    className="rounded-lg px-3 py-2 text-[13px] font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-                                >
-                                    {item}
-                                </a>
-                            )
-                        )}
-                    </div>
-                </div>
-            )}
-        </header>
-    )
-}
-
-// ── Footer ────────────────────────────────────────────────────────────
-
-const FOOTER_COLUMNS = [
-    {
-        title: 'Product',
-        links: ['Features', 'How it works', 'Pricing', 'Changelog', 'Roadmap'],
-    },
-    {
-        title: 'Company',
-        links: ['About', 'Blog', 'Careers', 'Customers', 'Contact'],
-    },
-    {
-        title: 'Resources',
-        links: [
-            'Documentation',
-            'Help center',
-            'API reference',
-            'Status',
-            'Security',
-        ],
-    },
-]
-
-// Using only safe, existing lucide-react icons for socials
-const SOCIALS = [
-    { label: 'Twitter', icon: Sparkles },
-    { label: 'GitHub', icon: Code2 },
-    { label: 'LinkedIn', icon: Briefcase },
-]
-
-const LEGAL_LINKS = ['Privacy', 'Terms', 'Cookies']
-
-const Footer = () => (
-    <footer className="border-t border-slate-200 bg-white">
-        <div className="mx-auto max-w-6xl px-6 py-14">
-            <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-[1.5fr_1fr_1fr_1fr]">
-                <div>
-                    <a href="/" className="flex items-center gap-2.5">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white shadow-lg shadow-indigo-500/25">
-                            <LayoutDashboard className="h-4 w-4" />
-                        </div>
-                        <span className="text-[15px] font-semibold tracking-tight text-slate-900">
-                            AeroPilot
-                        </span>
-                    </a>
-                    <p className="mt-4 max-w-xs text-[13px] leading-6 text-slate-500">
-                        Project management that organizes itself, so your team can focus on
-                        the work that matters.
-                    </p>
-                    <div className="mt-6 flex items-center gap-2">
-                        {SOCIALS.map((s) => {
-                            const Icon = s.icon
-                            return (
-                                <a
-                                    key={s.label}
-                                    href="#"
-                                    aria-label={s.label}
-                                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition-all hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900"
-                                >
-                                    <Icon className="h-3.5 w-3.5" />
-                                </a>
-                            )
-                        })}
-                    </div>
-                </div>
-                {FOOTER_COLUMNS.map((col) => (
-                    <div key={col.title}>
-                        <h4 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
-                            {col.title}
-                        </h4>
-                        <ul className="mt-4 space-y-2.5">
-                            {col.links.map((link) => (
-                                <li key={link}>
-                                    <a
-                                        href="#"
-                                        className="text-[13px] text-slate-600 transition-colors hover:text-slate-900"
-                                    >
-                                        {link}
-                                    </a>
-                                </li>
-                            ))}
-                        </ul>
-                    </div>
-                ))}
-            </div>
-            <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-slate-200 pt-8 sm:flex-row">
-                <p className="text-[12px] text-slate-400">
-                    © 2026 AeroPilot Project Management. All rights reserved.
-                </p>
-                <div className="flex items-center gap-6">
-                    {LEGAL_LINKS.map((item) => (
-                        <a
-                            key={item}
-                            href="#"
-                            className="text-[12px] text-slate-400 transition-colors hover:text-slate-700"
-                        >
-                            {item}
-                        </a>
-                    ))}
-                </div>
-            </div>
-        </div>
-    </footer>
-)
-
 // ── Data ──────────────────────────────────────────────────────────────
 
 const CHANNELS = [
     {
         icon: Mail,
         label: 'Email us',
-        value: 'hello@aeropilot.com',
+        value: 'aeronpay81@gmail.com',
         hint: 'We reply within 4 hours',
         color: 'text-indigo-600',
         bg: 'bg-indigo-50',
@@ -212,7 +35,7 @@ const CHANNELS = [
     {
         icon: MessageCircle,
         label: 'Live chat',
-        value: 'Mon–Fri, 9am–6pm',
+        value: 'Mon–Fri, 9 am–6 pm',
         hint: 'Average wait: 2 min',
         color: 'text-violet-600',
         bg: 'bg-violet-50',
@@ -247,18 +70,32 @@ const Contact = ({ showChrome = true }) => {
         message: '',
     })
     const [submitted, setSubmitted] = useState(false)
+    const [submitting, setSubmitting] = useState(false)
+    const [error, setError] = useState('')
+    const [deliveryMessage, setDeliveryMessage] = useState('')
 
     const handleChange = (field) => (e) =>
         setForm((f) => ({ ...f, [field]: e.target.value }))
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault()
-        setSubmitted(true)
+        setSubmitting(true)
+        setError('')
+        setDeliveryMessage('')
+        try {
+            const response = await contactAPI.submit(form)
+            setDeliveryMessage(response.message || 'Your message was received.')
+            setSubmitted(true)
+        } catch (value) {
+            setError(value?.message || String(value) || 'Unable to send your message.')
+        } finally {
+            setSubmitting(false)
+        }
     }
 
     return (
         <div className="min-h-screen bg-white text-slate-900 antialiased">
-            {showChrome && <Navbar />}
+            {showChrome && <Navbar activePage="contact" />}
 
             {/* Hero */}
             <section className="relative overflow-hidden border-b border-slate-100">
@@ -268,20 +105,10 @@ const Contact = ({ showChrome = true }) => {
 
                 <div className="mx-auto max-w-6xl px-6 pb-10 pt-2 sm:pt-4">
                     <div className="mx-auto max-w-3xl text-center">
-                        {/* <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3.5 py-1.5 shadow-sm">
-                            <span className="relative flex h-1.5 w-1.5">
-                                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                            </span>
-                            {/* <span className="text-[11px] font-medium tracking-wide text-slate-600">
-                                All systems operational
-                            </span> */}
-                        
-
                         <h1 className="text-[32px] font-semibold leading-[1.05] tracking-[-0.03em] text-slate-900 sm:text-[46px]">
                             Let's talk.
                             <br />
-                            <span className="text-slate-400">We're listening.</span>
+                            <span className="text-indigo-400">We're listening.</span>
                         </h1>
 
                         <p className="mx-auto mt-6 max-w-md text-[15px] leading-relaxed text-slate-500">
@@ -347,12 +174,17 @@ const Contact = ({ showChrome = true }) => {
                                         <span className="font-medium">
                                             {form.email || 'your email'}
                                         </span>{' '}
-                                        within the next 4 hours.
+                                        {deliveryMessage || 'We will get back to you within the next 4 hours.'}
                                     </p>
                                 </div>
                             </div>
                         ) : (
                             <form onSubmit={handleSubmit} className="mt-8 space-y-5">
+                                {error && (
+                                    <p role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-[13px] text-red-700">
+                                        {error}
+                                    </p>
+                                )}
                                 <div className="grid gap-5 sm:grid-cols-2">
                                     <div>
                                         <label className="mb-1.5 block text-[12px] font-medium text-slate-700">
@@ -414,7 +246,7 @@ const Contact = ({ showChrome = true }) => {
                                                         setForm((f) => ({ ...f, topic }))
                                                     }
                                                     className={`h-8 rounded-full px-3.5 text-[12.5px] font-medium transition-all ${isActive
-                                                        ? 'bg-slate-900 text-white shadow-sm'
+                                                        ? 'bg-indigo-600 text-white shadow-sm'
                                                         : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900'
                                                         }`}
                                                 >
@@ -445,9 +277,10 @@ const Contact = ({ showChrome = true }) => {
                                     </p>
                                     <button
                                         type="submit"
-                                        className="group flex h-11 items-center gap-2 rounded-full bg-slate-900 px-5 text-[13px] font-medium text-white shadow-sm transition-all hover:bg-slate-800 active:scale-[0.98]"
+                                        disabled={submitting}
+                                        className="group flex h-11 items-center gap-2 rounded-full bg-indigo-600 px-5 text-[13px] font-medium text-white shadow-sm transition-all hover:bg-indigo-700 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
                                     >
-                                        Send message
+                                        {submitting ? 'Sending...' : 'Send message'}
                                         <Send className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                                     </button>
                                 </div>
@@ -526,7 +359,6 @@ const Contact = ({ showChrome = true }) => {
                     </div>
                 </div>
             </section>
-
             {showChrome && <Footer />}
         </div>
     )

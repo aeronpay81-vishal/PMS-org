@@ -33,32 +33,22 @@ export default function Aiinsight({ user, projectId = null }) {
     const [insightsLoading, setInsightsLoading] = useState(false);
     const [insightsError, setInsightsError] = useState("");
 
-    const [actions, setActions] = useState([
-        // {
-        //     id: 1,
-        //     type: "danger",
-        //     title: "3 overdue tasks need attention",
-        //     description:
-        //         "AI recommends prioritizing API Integration and moving QA Review ahead of Documentation.",
-        //     action: "Review tasks",
-        // },
-        // {
-        //     id: 2,
-        //     type: "warning",
-        //     title: "Deadline risk detected",
-        //     description:
-        //         "The current velocity suggests the project may finish 2 days after the planned date.",
-        //     action: "View prediction",
-        // },
-        // {
-        //     id: 3,
-        //     type: "success",
-        //     title: "Workload can be optimized",
-        //     description:
-        //         "2 tasks can be moved from an overloaded team member to available capacity.",
-        //     action: "Optimize workload",
-        // },
-    ]);
+    const [actions, setActions] = useState([]);
+    const [selectedProjectId, setSelectedProjectId] = useState(projectId || "all");
+
+    const filteredProjects = useMemo(() => {
+        if (!selectedProjectId || selectedProjectId === "all") return projects;
+        return projects.filter((project) => String(project.id) === String(selectedProjectId));
+    }, [projects, selectedProjectId]);
+
+    const selectedProject = filteredProjects[0] || null;
+    const selectedProjectTasks = useMemo(() => {
+        return filteredProjects.flatMap((project) => project.tasks || []);
+    }, [filteredProjects]);
+    const aiScopeProjects = useMemo(() => {
+        if (!selectedProjectId || selectedProjectId === "all") return projects;
+        return filteredProjects;
+    }, [projects, filteredProjects, selectedProjectId]);
 
     // -----------------------------------------------------------------------
     // Fetch real project data & tasks using projectsAPI and tasksAPI
@@ -114,9 +104,7 @@ export default function Aiinsight({ user, projectId = null }) {
     // -----------------------------------------------------------------------
     // Compute dynamic or fallback analytics from real data
     // -----------------------------------------------------------------------
-    const allProjectTasks = useMemo(() => {
-        return projects.flatMap((p) => p.tasks || []);
-    }, [projects]);
+    const allProjectTasks = selectedProjectTasks;
 
     const totalTasksCount = allProjectTasks.length;
     const completedTasksCount = allProjectTasks.filter((t) => {
@@ -138,67 +126,52 @@ export default function Aiinsight({ user, projectId = null }) {
     }, [totalTasksCount, completedTasksCount, overdueTasksCount]);
 
     const risks = useMemo(() => {
-        if (projects.length === 0) {
+        if (filteredProjects.length === 0) {
             return [
                 {
-                    title: "Release deadline risk",
-                    probability: 72,
-                    severity: "High",
-                    description: "Current sprint velocity is below the required pace for the planned release.",
-                    tasks: ["API Integration", "QA Testing", "Deployment"],
-                },
-                {
-                    title: "Team capacity risk",
-                    probability: 58,
-                    severity: "Medium",
-                    description: "One team member is carrying significantly more work than the team average.",
-                    tasks: ["Frontend Polish", "Dashboard UI"],
-                },
-                {
-                    title: "Dependency risk",
-                    probability: 41,
-                    severity: "Medium",
-                    description: "API completion is blocking multiple downstream tasks.",
-                    tasks: ["Authentication", "Testing", "Deployment"],
+                    title: "No active project selected",
+                    probability: 0,
+                    severity: "Low",
+                    description: "Select a project to see AI risk analysis for that specific delivery plan.",
+                    tasks: ["No project data"],
                 },
             ];
         }
 
-        const criticalProjects = projects.filter((p) => (p.priority || "").toLowerCase() === "critical" || (p.priority || "").toLowerCase() === "high");
+        const criticalProjects = filteredProjects.filter((p) => (p.priority || "").toLowerCase() === "critical" || (p.priority || "").toLowerCase() === "high");
         return [
             {
-                title: overdueTasksCount > 0 ? `${overdueTasksCount} overdue tasks risk` : "Timeline and delivery pace",
+                title: overdueTasksCount > 0 ? `${overdueTasksCount} overdue tasks need attention` : "Delivery pace is steady",
                 probability: overdueTasksCount > 0 ? Math.min(88, 40 + overdueTasksCount * 12) : 35,
                 severity: overdueTasksCount > 2 ? "High" : "Medium",
                 description: overdueTasksCount > 0
-                    ? `${overdueTasksCount} tasks are currently past their due dates and need immediate rescheduling.`
-                    : "All tracked milestones are on schedule with acceptable cycle times.",
+                    ? `${overdueTasksCount} tasks in ${selectedProject?.summary || "this project"} are past due and should be prioritized this week.`
+                    : `${selectedProject?.summary || "This project"} is on a stable timeline with no critical overdue work right now.`,
                 tasks: allProjectTasks.slice(0, 3).map((t) => t.summary || t.task_detail || "Active task"),
             },
             {
-                title: `${criticalProjects.length} critical priority initiatives`,
+                title: `${criticalProjects.length} high-priority project items`,
                 probability: criticalProjects.length > 0 ? 65 : 25,
                 severity: criticalProjects.length > 1 ? "High" : "Low",
-                description: `${criticalProjects.length} projects require leadership oversight and high attention.`,
-                tasks: criticalProjects.slice(0, 3).map((p) => p.summary || "Critical Project"),
+                description: criticalProjects.length > 0
+                    ? `The project currently has ${criticalProjects.length} high-priority item(s) that need direct attention.`
+                    : "No major high-priority blockers are reported for this project right now.",
+                tasks: criticalProjects.slice(0, 3).map((p) => p.summary || "Critical item"),
             },
             {
-                title: "Resource & task allocation",
+                title: "Resource capacity check",
                 probability: 42,
                 severity: "Medium",
-                description: "Workload distribution is actively managed across active project assignments.",
-                tasks: allProjectTasks.slice(3, 6).map((t) => t.summary || t.task_detail || "Team task"),
+                description: "AI is reviewing workload balance and delivery capacity for the selected project.",
+                tasks: allProjectTasks.slice(0, 3).map((t) => t.summary || t.task_detail || "Team task"),
             },
         ];
-    }, [projects, allProjectTasks, overdueTasksCount]);
+    }, [filteredProjects, selectedProject, allProjectTasks, overdueTasksCount]);
 
     const team = useMemo(() => {
-        if (projects.length === 0) {
+        if (filteredProjects.length === 0) {
             return [
-                { name: "Manish", role: "Frontend", workload: 92, status: "Overloaded", color: "bg-red-500" },
-                { name: "Rahul", role: "Backend", workload: 67, status: "Balanced", color: "bg-blue-500" },
-                { name: "Priya", role: "QA", workload: 43, status: "Available", color: "bg-emerald-500" },
-                { name: "Aman", role: "UI/UX", workload: 76, status: "Busy", color: "bg-amber-500" },
+                { name: "No project selected", role: "—", workload: 0, status: "Waiting", color: "bg-slate-400" },
             ];
         }
 
@@ -236,26 +209,23 @@ export default function Aiinsight({ user, projectId = null }) {
                 color,
             };
         });
-    }, [projects, allProjectTasks]);
+    }, [filteredProjects, allProjectTasks]);
 
     const priorities = useMemo(() => {
         if (allProjectTasks.length === 0) {
             return [
-                { title: "Complete API Integration", project: "Website Redesign", priority: "Critical", due: "Today", reason: "Blocking 4 downstream tasks" },
-                { title: "Fix authentication issue", project: "Mobile App", priority: "High", due: "Tomorrow", reason: "High customer impact" },
-                { title: "QA dashboard flows", project: "Admin Portal", priority: "High", due: "Tomorrow", reason: "Release dependency" },
-                { title: "Update project documentation", project: "Internal Tools", priority: "Medium", due: "Aug 23", reason: "Low urgency" },
+                { title: "No task data available", project: selectedProject?.summary || "Selected project", priority: "Low", due: "—", reason: "Add tasks to generate AI priority recommendations." },
             ];
         }
 
         return allProjectTasks.slice(0, 5).map((t) => ({
             title: t.summary || t.task_detail || "Project Task",
-            project: projects.find((p) => p.id === t.project_id)?.summary || "General",
+            project: filteredProjects.find((p) => p.id === t.project_id)?.summary || selectedProject?.summary || "Selected project",
             priority: (t.priority || "medium").toUpperCase(),
             due: t.due_date ? new Date(t.due_date).toLocaleDateString() : "Flexible",
             reason: t.status === "in_progress" ? "In active development" : "Scheduled milestone item",
         }));
-    }, [projects, allProjectTasks]);
+    }, [filteredProjects, selectedProject, allProjectTasks]);
 
     const dependencies = [
         { task: "API Integration", blocks: 0, status: "Blocked", color: "red" },
@@ -291,14 +261,17 @@ export default function Aiinsight({ user, projectId = null }) {
         setAiError("");
         setAiAnswer("");
         try {
-            const answer = await aiClient.ask(question, projects);
+            const answer = await aiClient.ask(
+                `${question}${selectedProject ? ` Focus only on ${selectedProject.summary || selectedProject.title || "this project"}.` : ""}`,
+                aiScopeProjects
+            );
             setAiAnswer(answer);
         } catch (err) {
             setAiError(err?.message || "Couldn't reach the AI just now. Please check your network or API key.");
         } finally {
             setAiLoading(false);
         }
-    }, [question, aiLoading, projects]);
+    }, [question, aiLoading, aiScopeProjects, selectedProject]);
 
     const askSuggestion = (suggestion) => {
         setQuestion(suggestion);
@@ -306,7 +279,10 @@ export default function Aiinsight({ user, projectId = null }) {
         setAiError("");
         setAiAnswer("");
         aiClient
-            .ask(suggestion, projects)
+            .ask(
+                `${suggestion}${selectedProject ? ` Focus only on ${selectedProject.summary || selectedProject.title || "this project"}.` : ""}`,
+                aiScopeProjects
+            )
             .then((answer) => setAiAnswer(answer))
             .catch((err) => setAiError(err?.message || "Couldn't reach the AI just now."))
             .finally(() => setAiLoading(false));
@@ -317,7 +293,7 @@ export default function Aiinsight({ user, projectId = null }) {
         setInsightsLoading(true);
         setInsightsError("");
         try {
-            const items = await aiClient.generateInsights(projects);
+            const items = await aiClient.generateInsights(aiScopeProjects);
             if (items && items.length > 0) {
                 setActions(
                     items.slice(0, 3).map((item, index) => ({
@@ -335,31 +311,64 @@ export default function Aiinsight({ user, projectId = null }) {
         } finally {
             setInsightsLoading(false);
         }
-    }, [projects]);
+    }, [aiScopeProjects]);
+
+    useEffect(() => {
+        if (projectsLoaded && projects.length > 0) {
+            if (!projectId && selectedProjectId === "all" && projects[0]) {
+                setSelectedProjectId(String(projects[0].id));
+            }
+        }
+    }, [projectsLoaded, projects, projectId, selectedProjectId]);
 
     useEffect(() => {
         if (projectsLoaded) {
             generateAIInsights();
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [projectsLoaded]);
+    }, [projectsLoaded, selectedProjectId]);
 
     const generateSprintPlan = useCallback(async () => {
         setSprintLoading(true);
         setSprintPlan(null);
         try {
-            const result = await aiClient.generateSprintPlan(projects);
+            const result = await aiClient.generateSprintPlan(aiScopeProjects);
             setSprintPlan(result);
         } catch (err) {
             setSprintPlan({ error: true });
         } finally {
             setSprintLoading(false);
         }
-    }, [projects]);
+    }, [aiScopeProjects]);
 
     const dismissAction = (id) => {
         setActions((current) => current.filter((item) => item.id !== id));
     };
+
+    const formatAiAnswer = useCallback((answer) => {
+        if (!answer) return [];
+        const normalized = answer
+            .replace(/\*\*/g, "")
+            .replace(/\r/g, "")
+            .trim();
+
+        const blocks = normalized
+            .split(/\n\s*\n/)
+            .map((block) => block.trim())
+            .filter(Boolean);
+
+        if (blocks.length === 0) return [normalized];
+
+        return blocks.flatMap((block) => {
+            const lines = block
+                .split(/\n/)
+                .map((line) => line.trim())
+                .filter(Boolean)
+                .map((line) => line.replace(/^[-*•]\s*/, "").replace(/^\d+[.)]\s*/, ""));
+
+            return lines.length > 1 ? lines : [block];
+        });
+    }, []);
 
     const healthLabel = useMemo(() => {
         if (health >= 80) return "Healthy";
@@ -389,7 +398,9 @@ export default function Aiinsight({ user, projectId = null }) {
                         </h1>
 
                         <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                            Your AI-powered project command center
+                            {selectedProject
+                                ? `Focused on: ${selectedProject.summary || selectedProject.title || "Selected project"}`
+                                : "Your AI-powered project command center"}
                         </p>
                     </div>
 
@@ -419,6 +430,26 @@ export default function Aiinsight({ user, projectId = null }) {
                         </button>
                     </div>
                 </div>
+
+                {projects.length > 0 && (
+                    <div className="mb-6 flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 dark:border-slate-800 dark:bg-slate-900">
+                        <label className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
+                            Project focus
+                        </label>
+                        <select
+                            value={selectedProjectId}
+                            onChange={(e) => setSelectedProjectId(e.target.value)}
+                            className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700 outline-none transition focus:border-blue-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                        >
+                            <option value="all">All projects</option>
+                            {projects.map((project) => (
+                                <option key={project.id} value={String(project.id)}>
+                                    {project.summary || project.title || `Project ${project.id}`}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                )}
 
                 {/* Tabs */}
                 <div className="mb-6 flex gap-1 overflow-x-auto rounded-xl border border-slate-200 bg-white p-1 dark:border-slate-800 dark:bg-slate-900">
@@ -792,61 +823,7 @@ export default function Aiinsight({ user, projectId = null }) {
                         </div>
 
                         {/* Dependencies */}
-                        <section className="rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
-                            <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4 dark:border-slate-800">
-                                <div className="flex items-center gap-3">
-                                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-orange-50 text-orange-600 dark:bg-orange-500/10">
-                                        <GitBranch size={18} />
-                                    </div>
-
-                                    <div>
-                                        <h2 className="font-semibold text-slate-900 dark:text-white">
-                                            Dependency Intelligence
-                                        </h2>
-                                        <p className="text-xs text-slate-500 dark:text-slate-400">
-                                            AI detected these potential bottlenecks
-                                        </p>
-                                    </div>
-                                </div>
-
-                                <button
-                                    onClick={() => setActiveTab("dependencies")}
-                                    className="text-xs font-semibold text-blue-600"
-                                >
-                                    Analyze
-                                </button>
-                            </div>
-
-                            <div className="grid grid-cols-1 divide-y divide-slate-100 dark:divide-slate-800 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
-                                {dependencies.map((dependency) => (
-                                    <div key={dependency.task} className="p-5">
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">
-                                                {dependency.task}
-                                            </span>
-
-                                            <span
-                                                className={`rounded-full px-2 py-1 text-[10px] font-bold ${dependency.color === "red"
-                                                    ? "bg-red-50 text-red-600 dark:bg-red-500/10"
-                                                    : dependency.color === "amber"
-                                                        ? "bg-amber-50 text-amber-600 dark:bg-amber-500/10"
-                                                        : "bg-blue-50 text-blue-600 dark:bg-blue-500/10"
-                                                    }`}
-                                            >
-                                                {dependency.status}
-                                            </span>
-                                        </div>
-
-                                        <div className="mt-4 flex items-end gap-1">
-                                            <span className="text-3xl font-bold text-slate-900 dark:text-white">
-                                                {dependency.blocks}
-                                            </span>
-                                            <span className="mb-1 text-xs text-slate-400">tasks blocked</span>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </section>
+                     
 
                         {/* Weekly report */}
                         <section className="rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
@@ -1155,89 +1132,193 @@ export default function Aiinsight({ user, projectId = null }) {
                 )}
 
                 {/* Ask AI */}
-                <section className="mt-6 overflow-hidden rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-600 shadow-xl shadow-blue-500/10">
-                    <div className="p-5 sm:p-6">
-                        <div className="flex items-start gap-3">
-                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/15 text-white backdrop-blur">
-                                <MessageSquare size={20} />
-                            </div>
+               <section className="mt-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_8px_30px_rgba(15,23,42,0.06)] dark:border-slate-800 dark:bg-slate-900">
+    {/* AI Header */}
+    <div className="relative overflow-hidden border-b border-slate-200 dark:border-slate-800">
+        {/* subtle background */}
+        <div className="absolute inset-0 bg-gradient-to-br from-indigo-50 via-white to-violet-50 dark:from-indigo-950/40 dark:via-slate-900 dark:to-violet-950/30" />
 
-                            <div>
-                                <h2 className="font-semibold text-white">Ask Your Project AI</h2>
-                                <p className="mt-1 text-xs leading-5 text-blue-100">
-                                    Ask anything about project health, deadlines, risks, team workload
-                                    or priorities. Answered live by AI.
-                                </p>
-                            </div>
-                        </div>
+        <div className="relative p-5 sm:p-6">
+            <div className="flex items-start justify-between gap-4">
+                <div className="flex items-start gap-3.5">
+                    {/* AI Icon */}
+                    <div className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-indigo-200 bg-indigo-600 text-white shadow-lg shadow-indigo-600/20 dark:border-indigo-500/30">
+                        <Sparkles size={19} />
 
-                        <div className="mt-5 flex flex-col gap-2 sm:flex-row">
-                            <div className="flex flex-1 items-center rounded-xl bg-white/10 px-4 backdrop-blur">
-                                <Sparkles size={17} className="mr-3 text-blue-100" />
-
-                                <input
-                                    value={question}
-                                    onChange={(e) => setQuestion(e.target.value)}
-                                    onKeyDown={(e) => {
-                                        if (e.key === "Enter") askAI();
-                                    }}
-                                    placeholder="Why are we behind?"
-                                    className="w-full bg-transparent py-3.5 text-sm text-white outline-none placeholder:text-blue-100/60"
-                                />
-                            </div>
-
-                            <button
-                                onClick={askAI}
-                                disabled={aiLoading || !question.trim()}
-                                className="flex items-center justify-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-semibold text-blue-700 transition hover:bg-blue-50 disabled:opacity-60"
-                            >
-                                {aiLoading ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
-                                {aiLoading ? "Thinking…" : "Ask AI"}
-                            </button>
-                        </div>
-
-                        <div className="mt-3 flex flex-wrap gap-2">
-                            {[
-                                "Why are we behind?",
-                                "Who is overloaded?",
-                                "What should I do today?",
-                                "Summarize this project",
-                            ].map((suggestion) => (
-                                <button
-                                    key={suggestion}
-                                    onClick={() => askSuggestion(suggestion)}
-                                    disabled={aiLoading}
-                                    className="rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-[11px] font-medium text-blue-50 transition hover:bg-white/20 disabled:opacity-60"
-                                >
-                                    {suggestion}
-                                </button>
-                            ))}
-                        </div>
-
-                        {aiError && (
-                            <div className="mt-5 rounded-xl border border-red-300/40 bg-red-500/10 p-4 text-sm text-red-50">
-                                {aiError}
-                            </div>
-                        )}
-
-                        {aiAnswer && !aiError && (
-                            <div className="mt-5 rounded-xl border border-white/10 bg-white/10 p-4 backdrop-blur">
-                                <div className="flex gap-3">
-                                    <div className="mt-0.5 text-white">
-                                        <Brain size={18} />
-                                    </div>
-
-                                    <div>
-                                        <p className="text-xs font-semibold uppercase tracking-wide text-blue-100">
-                                            AI Analysis
-                                        </p>
-                                        <p className="mt-1 text-sm leading-6 text-white">{aiAnswer}</p>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
+                        <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full border-2 border-white bg-emerald-400 dark:border-slate-900" />
                     </div>
-                </section>
+
+                    <div>
+                        <div className="flex items-center gap-2">
+                            <h2 className="text-[15px] font-semibold tracking-tight text-slate-900 dark:text-white">
+                                Project AI
+                            </h2>
+
+                            <span className="rounded-full border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-indigo-600 dark:border-indigo-500/20 dark:bg-indigo-500/10 dark:text-indigo-400">
+                                Live
+                            </span>
+                        </div>
+
+                        <p className="mt-1 max-w-xl text-xs leading-5 text-slate-500 dark:text-slate-400">
+                            Get instant insights about project health, deadlines,
+                            workload, risks and priorities.
+                        </p>
+                    </div>
+                </div>
+
+                {/* AI status */}
+                <div className="hidden items-center gap-2 rounded-lg border border-slate-200 bg-white/80 px-3 py-1.5 text-[10px] font-medium text-slate-500 shadow-sm sm:flex dark:border-slate-700 dark:bg-slate-800/70 dark:text-slate-400">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                    AI Ready
+                </div>
+            </div>
+
+            {/* Search / Ask Box */}
+            <div className="mt-5">
+                <div
+                    className={`group flex items-center rounded-xl border bg-white shadow-sm transition-all dark:bg-slate-950 ${
+                        aiLoading
+                            ? "border-indigo-400 ring-4 ring-indigo-500/10"
+                            : "border-slate-200 hover:border-indigo-300 focus-within:border-indigo-400 focus-within:ring-4 focus-within:ring-indigo-500/10 dark:border-slate-700 dark:hover:border-indigo-500/50"
+                    }`}
+                >
+                    <div className="pl-4 text-indigo-500">
+                        <Sparkles size={17} />
+                    </div>
+
+                    <input
+                        value={question}
+                        onChange={(e) => setQuestion(e.target.value)}
+                        onKeyDown={(e) => {
+                            if (e.key === "Enter") askAI();
+                        }}
+                        placeholder="Ask about your project..."
+                        className="min-w-0 flex-1 bg-transparent px-3 py-3.5 text-sm text-slate-900 outline-none placeholder:text-slate-400 dark:text-white dark:placeholder:text-slate-600"
+                    />
+
+                    <button
+                        onClick={askAI}
+                        disabled={aiLoading || !question.trim()}
+                        className="mr-1.5 flex shrink-0 items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-xs font-semibold text-white shadow-sm transition-all hover:bg-indigo-700 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                        {aiLoading ? (
+                            <>
+                                <Loader2 size={15} className="animate-spin" />
+                                Thinking
+                            </>
+                        ) : (
+                            <>
+                                <Send size={15} />
+                                Ask AI
+                            </>
+                        )}
+                    </button>
+                </div>
+            </div>
+
+            {/* Suggested Questions */}
+            <div className="mt-3 flex items-center gap-2 overflow-x-auto pb-1">
+                <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                    Try asking
+                </span>
+
+                {[
+                    "Why are we behind?",
+                    "Who is overloaded?",
+                    "What should I do today?",
+                    "Summarize this project",
+                ].map((suggestion) => (
+                    <button
+                        key={suggestion}
+                        onClick={() => askSuggestion(suggestion)}
+                        disabled={aiLoading}
+                        className="shrink-0 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[10px] font-medium text-slate-600 transition-all hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 dark:hover:border-indigo-500/30 dark:hover:bg-indigo-500/10 dark:hover:text-indigo-400"
+                    >
+                        {suggestion}
+                    </button>
+                ))}
+            </div>
+        </div>
+    </div>
+
+    {/* Error */}
+    {aiError && (
+        <div className="border-b border-red-100 bg-red-50 px-5 py-4 dark:border-red-500/10 dark:bg-red-500/5">
+            <div className="flex items-start gap-3">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-red-100 text-red-600 dark:bg-red-500/10 dark:text-red-400">
+                    <AlertCircle size={16} />
+                </div>
+
+                <div>
+                    <p className="text-xs font-semibold text-red-700 dark:text-red-400">
+                        AI couldn't complete the analysis
+                    </p>
+                    <p className="mt-0.5 text-xs leading-5 text-red-600/80 dark:text-red-400/70">
+                        {aiError}
+                    </p>
+                </div>
+            </div>
+        </div>
+    )}
+
+    {/* AI Response */}
+    {aiAnswer && !aiError && (
+        <div className="bg-slate-50/70 p-5 dark:bg-slate-950/40 sm:p-6">
+            {/* Response Header */}
+            <div className="mb-4 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-100 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">
+                        <Brain size={16} />
+                    </div>
+
+                    <div>
+                        <p className="text-xs font-semibold text-slate-900 dark:text-white">
+                            AI Analysis
+                        </p>
+
+                        <p className="text-[10px] text-slate-400">
+                            Based on current project data
+                        </p>
+                    </div>
+                </div>
+
+                {selectedProject && (
+                    <div className="max-w-[180px] truncate rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[10px] font-semibold text-slate-500 shadow-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400">
+                        {selectedProject.summary ||
+                            selectedProject.title ||
+                            "Selected project"}
+                    </div>
+                )}
+            </div>
+
+            {/* Analysis Points */}
+            <div className="space-y-2">
+                {formatAiAnswer(aiAnswer).map((point, index) => (
+                    <div
+                        key={`${point}-${index}`}
+                        className="group rounded-xl border border-slate-200 bg-white p-3.5 shadow-sm transition-all hover:border-indigo-200 hover:shadow-md dark:border-slate-800 dark:bg-slate-900 dark:hover:border-indigo-500/30"
+                    >
+                        <div className="flex items-start gap-3">
+                            <div className="mt-1.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-indigo-50 dark:bg-indigo-500/10">
+                                <span className="h-1.5 w-1.5 rounded-full bg-indigo-500" />
+                            </div>
+
+                            <p className="flex-1 text-left text-[13px] leading-6 text-slate-600 dark:text-slate-300">
+                                {point}
+                            </p>
+                        </div>
+                    </div>
+                ))}
+            </div>
+
+            {/* Footer */}
+            <div className="mt-4 flex items-center gap-2 text-[10px] text-slate-400">
+                <Sparkles size={12} />
+                AI-generated insights may change as project data updates.
+            </div>
+        </div>
+    )}
+</section>
             </div>
 
             {/* Sprint Planner Modal */}

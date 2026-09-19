@@ -34,6 +34,61 @@ const avatarColor = (seed) => {
   return AVATAR_PALETTE[Math.abs(hash) % AVATAR_PALETTE.length];
 };
 
+const getUserDisplayName = (user) => {
+  if (!user) return null;
+  return user.full_name || user.username || user.name || user.email || null;
+};
+
+const resolveProjectAssigneeName = (project) => {
+  if (!project) return null;
+
+  const directName = getUserDisplayName(project.assignee)
+    || getUserDisplayName(project.assigned_to_user)
+    || project.assigned_to_name
+    || project.assignee_name
+    || null;
+
+  if (directName) return directName;
+
+  const assignedToId = project.assigned_to;
+  if (assignedToId) {
+    const memberMatch = (project.members || []).find((member) => {
+      const memberId = member?.user_id ?? member?.user?.id ?? member?.id;
+      return String(memberId) === String(assignedToId);
+    });
+
+    const memberName = getUserDisplayName(memberMatch?.user) || memberMatch?.full_name || memberMatch?.username;
+    if (memberName) return memberName;
+
+    const taskMatch = (project.assignments || project.tasks || []).find((task) => {
+      const taskAssigneeId = task?.assigned_to ?? task?.assignee?.id ?? task?.assignee_id;
+      return String(taskAssigneeId) === String(assignedToId);
+    });
+
+    const taskName = getUserDisplayName(taskMatch?.assignee) || taskMatch?.assigned_to_name || taskMatch?.assignee_name;
+    if (taskName) return taskName;
+  }
+
+  const fallbackTask = (project.assignments || project.tasks || []).find(
+    (task) => task?.assignee || task?.assigned_to || task?.assigned_to_name || task?.assignee_name
+  );
+
+  if (fallbackTask) {
+    const fallbackName = getUserDisplayName(fallbackTask.assignee)
+      || fallbackTask.assigned_to_name
+      || fallbackTask.assignee_name
+      || null;
+
+    if (fallbackName) return fallbackName;
+
+    if (fallbackTask.assigned_to) {
+      return `Assigned (user id: ${fallbackTask.assigned_to})`;
+    }
+  }
+
+  return null;
+};
+
 const ProjectTable = ({ projects, onDelete, onEdit, onInvite, isLoading, user, onViewAll }) => {
   const currentUser = user || authAPI.getStoredUser() || {};
   const isManager = currentUser?.role === "manager";
@@ -162,7 +217,7 @@ const ProjectTable = ({ projects, onDelete, onEdit, onInvite, isLoading, user, o
               const canDeleteProject = isManager || project.my_role === "owner";
               const roleLabel = project.my_role === "owner" ? "Owner" : project.my_role === "manager" ? "Manager" : "Member";
               const labelsArray = getLabelsArray(project.labels);
-              const assigneeName = project.assignee ? project.assignee.full_name || project.assignee.username : null;
+              const assigneeName = resolveProjectAssigneeName(project);
               const status = STATUS_META[project.status] || {
                 label: (project.status || "Unknown").replace("_", " ").toUpperCase(),
                 classes: "bg-[#F1F2F4] text-[#44546F] dark:bg-slate-800/60 dark:text-slate-400",
@@ -205,11 +260,11 @@ const ProjectTable = ({ projects, onDelete, onEdit, onInvite, isLoading, user, o
                     </span>
                   </td>
                   <td className="px-4 py-2.5">
-                    {project.assignee ? (
+                    {assigneeName ? (
                       <div className="flex items-center gap-2">
                         <div
                           className={`flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-[10px] font-semibold text-white ${avatarColor(
-                            project.assignee.username
+                            assigneeName
                           )}`}
                         >
                           {assigneeName.charAt(0).toUpperCase()}

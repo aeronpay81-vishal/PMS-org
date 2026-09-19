@@ -24,10 +24,10 @@ const FOOTER_COLUMNS = [
   {
     title: "Resources",
     links: [
-      { label: "Documentation", to: "/documentation" },
+      { label: "Privacy policy", to: "/privacy" },
       { label: "Help center", to: "/help-center" },
       { label: "API reference", to: "/api-reference" },
-      { label: "Security", to: "/security" },
+      { label: "Security", to: "/privacy" },
     ],
   },
 ];

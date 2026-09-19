@@ -32,6 +32,7 @@ class Config:
     MAIL_PASSWORD = os.getenv('MAIL_PASSWORD')
     MAIL_FROM = os.getenv('MAIL_FROM', 'noreply@pms.com')
     MAIL_DEFAULT_SENDER = (os.getenv('MAIL_FROM_NAME', 'AeroPilot System'), os.getenv('MAIL_USERNAME', MAIL_FROM))
+    CONTACT_RECIPIENT_EMAIL = os.getenv('CONTACT_RECIPIENT_EMAIL') or MAIL_USERNAME
 
     
     # Frontend URL for links

@@ -496,8 +496,8 @@ const Reports = () => {
         ) : taskRows.length === 0 ? (
           <div className="flex flex-col items-center justify-center gap-2 py-16 text-center">
             <FileSpreadsheet className="h-6 w-6 text-slate-300" />
-            <p className="text-sm font-medium text-slate-600">Koi project nahi</p>
-            <p className="text-xs text-slate-400">Pehle project banao, phir report dekh sakte ho.</p>
+            <p className="text-sm font-medium text-slate-600">You Dont Have Any Projects</p>
+            <p className="text-xs text-slate-400">Create a project to view it here.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
