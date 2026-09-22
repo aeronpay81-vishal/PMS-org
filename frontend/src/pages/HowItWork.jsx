@@ -411,25 +411,25 @@ const CommunicationSection = () => {
     const ctx = gsap.context(() => {
       gsap.set('.media-copy', {
         opacity: 0,
-        x: -45,
+        x: -30,
       })
 
       gsap.set('.media-visual', {
         opacity: 0,
-        x: 55,
-        scale: 0.94,
+        x: 35,
+        scale: 0.96,
       })
 
       gsap.set('.media-float-card', {
         opacity: 0,
-        y: 25,
-        scale: 0.9,
+        y: 15,
+        scale: 0.94,
       })
 
       const tl = gsap.timeline({
         scrollTrigger: {
           trigger: sectionRef.current,
-          start: 'top 78%',
+          start: 'top 95%',
           toggleActions: 'play none none none',
         },
       })
@@ -437,7 +437,7 @@ const CommunicationSection = () => {
       tl.to('.media-copy', {
         opacity: 1,
         x: 0,
-        duration: 0.8,
+        duration: 0.45,
         ease: 'power3.out',
       })
         .to(
@@ -446,10 +446,10 @@ const CommunicationSection = () => {
             opacity: 1,
             x: 0,
             scale: 1,
-            duration: 1,
+            duration: 0.5,
             ease: 'power3.out',
           },
-          '-=0.55'
+          '-=0.3'
         )
         .to(
           '.media-float-card',
@@ -457,11 +457,11 @@ const CommunicationSection = () => {
             opacity: 1,
             y: 0,
             scale: 1,
-            duration: 0.6,
-            stagger: 0.12,
+            duration: 0.4,
+            stagger: 0.08,
             ease: 'back.out(1.5)',
           },
-          '-=0.5'
+          '-=0.3'
         )
 
       gsap.to('.float-one', {
@@ -474,7 +474,7 @@ const CommunicationSection = () => {
 
       gsap.to('.float-two', {
         y: 9,
-        duration: 3.2,
+        duration: 2.2,
         repeat: -1,
         yoyo: true,
         ease: 'sine.inOut',
@@ -576,7 +576,7 @@ const CommunicationSection = () => {
               Better team communication
             </div>
 
-            <h2 className="max-w-xl text-4xl font-semibold tracking-[-0.045em] text-indigo-950 sm:text-5xl sm:leading-[1.06]">
+            <h2 className="max-w-xl text-4xl font-semibold tracking-[-0.045em] text-indigo-950 sm:text-5xl sm:leading-[1.06]  ">
               Boost team collaboration
               <br />
               <span className="bg-gradient-to-r from-indigo-600 via-indigo-500 to-violet-600 bg-clip-text text-transparent">
@@ -928,51 +928,51 @@ const HowItWorks = ({ showChrome = true }) => {
 
       gsap.set('.hero-badge', {
         opacity: 0,
-        y: 18,
-        scale: 0.96,
+        y: 12,
+        scale: 0.97,
       })
 
       gsap.set('.hero-title-line', {
         opacity: 0,
-        y: 45,
+        y: 28,
       })
 
       gsap.set('.hero-description', {
         opacity: 0,
-        y: 18,
+        y: 12,
       })
 
       gsap.set('.hero-feature', {
         opacity: 0,
-        y: 15,
+        y: 10,
       })
 
       gsap.set('.hero-cta', {
         opacity: 0,
-        y: 15,
+        y: 10,
       })
 
       gsap.set('.step-item', {
         opacity: 0,
-        y: 45,
+        y: 28,
       })
 
       gsap.set('.step-icon', {
         opacity: 0,
-        scale: 0.65,
-        rotation: -8,
+        scale: 0.7,
+        rotation: -6,
       })
 
       gsap.set('.step-copy', {
         opacity: 0,
-        x: -25,
+        x: -16,
       })
 
       gsap.set('[data-preview]', {
         opacity: 0,
-        x: 35,
-        scale: 0.92,
-        rotation: 1.5,
+        x: 22,
+        scale: 0.95,
+        rotation: 1,
       })
 
       gsap.set('.step-line', {
@@ -981,13 +981,13 @@ const HowItWorks = ({ showChrome = true }) => {
 
       gsap.set('.step-link', {
         opacity: 0,
-        x: -8,
+        x: -6,
       })
 
       gsap.set('.cta-section', {
         opacity: 0,
-        y: 50,
-        scale: 0.98,
+        y: 30,
+        scale: 0.99,
       })
 
       /* ========================================================
@@ -1005,45 +1005,45 @@ const HowItWorks = ({ showChrome = true }) => {
           opacity: 1,
           y: 0,
           scale: 1,
-          duration: 0.65,
+          duration: 0.4,
         })
         .to(
           '.hero-title-line',
           {
             opacity: 1,
             y: 0,
-            duration: 0.85,
-            stagger: 0.12,
+            duration: 0.5,
+            stagger: 0.06,
           },
-          '-=0.35'
+          '-=0.2'
         )
         .to(
           '.hero-description',
           {
             opacity: 1,
             y: 0,
-            duration: 0.65,
+            duration: 0.4,
           },
-          '-=0.42'
+          '-=0.25'
         )
         .to(
           '.hero-feature',
           {
             opacity: 1,
             y: 0,
-            duration: 0.5,
-            stagger: 0.1,
+            duration: 0.3,
+            stagger: 0.05,
           },
-          '-=0.28'
+          '-=0.15'
         )
         .to(
           '.hero-cta',
           {
             opacity: 1,
             y: 0,
-            duration: 0.5,
+            duration: 0.3,
           },
-          '-=0.25'
+          '-=0.12'
         )
 
       /* ========================================================
@@ -1106,7 +1106,7 @@ const HowItWorks = ({ showChrome = true }) => {
         const tl = gsap.timeline({
           scrollTrigger: {
             trigger: step,
-            start: 'top 78%',
+            start: 'top 95%',
             toggleActions: 'play none none none',
           },
         })
@@ -1114,7 +1114,7 @@ const HowItWorks = ({ showChrome = true }) => {
         tl.to(step, {
           opacity: 1,
           y: 0,
-          duration: 0.65,
+          duration: 0.4,
           ease: 'power3.out',
         })
           .to(
@@ -1123,20 +1123,20 @@ const HowItWorks = ({ showChrome = true }) => {
               opacity: 1,
               scale: 1,
               rotation: 0,
-              duration: 0.55,
+              duration: 0.35,
               ease: 'back.out(1.7)',
             },
-            '-=0.4'
+            '-=0.25'
           )
           .to(
             copy,
             {
               opacity: 1,
               x: 0,
-              duration: 0.6,
+              duration: 0.4,
               ease: 'power3.out',
             },
-            '-=0.35'
+            '-=0.22'
           )
           .to(
             preview,
@@ -1145,20 +1145,20 @@ const HowItWorks = ({ showChrome = true }) => {
               x: 0,
               scale: 1,
               rotation: 0,
-              duration: 0.7,
+              duration: 0.45,
               ease: 'power3.out',
             },
-            '-=0.45'
+            '-=0.28'
           )
           .to(
             link,
             {
               opacity: 1,
               x: 0,
-              duration: 0.35,
+              duration: 0.25,
               ease: 'power2.out',
             },
-            '-=0.28'
+            '-=0.18'
           )
 
         if (line) {
@@ -1166,10 +1166,10 @@ const HowItWorks = ({ showChrome = true }) => {
             line,
             {
               scaleY: 1,
-              duration: 0.65,
+              duration: 0.4,
               ease: 'power2.out',
             },
-            '-=0.18'
+            '-=0.12'
           )
         }
       })
@@ -1189,12 +1189,12 @@ const HowItWorks = ({ showChrome = true }) => {
             },
             {
               scaleY: 1,
-              duration: 0.7,
-              delay: index * 0.07,
+              duration: 0.45,
+              delay: index * 0.04,
               ease: 'back.out(1.5)',
               scrollTrigger: {
                 trigger: bar,
-                start: 'top 86%',
+                start: 'top 96%',
                 toggleActions: 'play none none none',
               },
             }
@@ -1233,16 +1233,16 @@ const HowItWorks = ({ showChrome = true }) => {
             element,
             {
               opacity: 0,
-              y: 35,
+              y: 20,
             },
             {
               opacity: 1,
               y: 0,
-              duration: 0.8,
+              duration: 0.5,
               ease: 'power3.out',
               scrollTrigger: {
                 trigger: element,
-                start: 'top 82%',
+                start: 'top 95%',
                 toggleActions:
                   'play none none none',
               },
@@ -1257,7 +1257,7 @@ const HowItWorks = ({ showChrome = true }) => {
       const ctaTimeline = gsap.timeline({
         scrollTrigger: {
           trigger: '.cta-section',
-          start: 'top 82%',
+          start: 'top 95%',
           toggleActions: 'play none none none',
         },
       })
@@ -1266,7 +1266,7 @@ const HowItWorks = ({ showChrome = true }) => {
         opacity: 1,
         y: 0,
         scale: 1,
-        duration: 0.9,
+        duration: 0.55,
         ease: 'power3.out',
       })
 
@@ -1394,7 +1394,7 @@ const HowItWorks = ({ showChrome = true }) => {
 
       const refreshTimeout = setTimeout(() => {
         ScrollTrigger.refresh()
-      }, 600)
+      }, 100)
 
       return () => {
         clearTimeout(refreshTimeout)

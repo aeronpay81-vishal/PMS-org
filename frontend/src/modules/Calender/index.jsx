@@ -339,10 +339,10 @@ export const Calender = ({ user }) => {
                         </div>
 
                         {/* Add Task */}
-                        <button className="flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700">
+                        {/* <button className="flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700">
                             <Plus size={17} />
                             Add Task
-                        </button>
+                        </button> */}
 
                     </div>
                 </div>

@@ -38,5 +38,8 @@ class Config:
     # Frontend URL for links
     FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:5173')
     
+    # Google OAuth
+    GOOGLE_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID')
+    
     # App
     DEBUG = os.getenv('DEBUG', 'False') == 'True'

@@ -42,6 +42,20 @@ def login():
     return jsonify(response), status_code
 
 
+@auth_bp.route('/google-login', methods=['POST'])
+def google_login():
+    """
+    User login via Google endpoint
+    
+    POST /api/auth/google-login
+    {
+        "token": "GOOGLE_ID_TOKEN"
+    }
+    """
+    response, status_code = AuthController.google_login()
+    return jsonify(response), status_code
+
+
 @auth_bp.route('/send-otp', methods=['POST'])
 def send_otp():
     response, status_code = AuthController.send_otp()

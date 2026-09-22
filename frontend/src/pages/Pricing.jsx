@@ -43,16 +43,20 @@ const Pricing = ({ showChrome = true }) => (
     <section className={`mx-auto max-w-6xl px-4 ${showChrome ? "py-16 sm:px-6" : "py-12 sm:px-8"}`}>
       <div className="mx-auto max-w-2xl text-center">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#0C66E4]">Pricing</p>
-        <h1 className="mt-3 text-4xl font-semibold tracking-tight text-[#172B4D] sm:text-5xl">Simple pricing, no surprises</h1>
+        <h1 className="mt-3 text-4xl font-semibold tracking-tight text-[#172B4D] sm:text-5xl">Simple pricing,<span className="bg-gradient-to-r from-indigo-600 via-indigo-500 to-violet-600 bg-clip-text text-transparent"> no surprises</span></h1>
         <p className="mt-4 text-[15px] leading-7 text-[#44546F]">Start free. Upgrade only when your team needs more power, automation, and support.</p>
       </div>
 
-      <div className="mt-12 grid gap-4 lg:grid-cols-3">
+      <div className="mt-12 grid gap-4 lg:grid-cols-3  ">
         {PLANS.map((plan) => (
           <div
             key={plan.name}
-            className={`marketing-card flex flex-col p-6 ${plan.highlight ? "border-[#0C66E4] ring-2 ring-[#0C66E4]/15" : ""
-              }`}
+             className={`group relative flex flex-col overflow-hidden rounded-3xl border p-6 transition-all duration-300 sm:p-7 ${
+              plan.highlight
+                ? "border-indigo-300 bg-gradient-to-b from-indigo-50/80 via-white to-white shadow-[0_24px_70px_-30px_rgba(79,70,229,0.45)] hover:-translate-y-1 hover:shadow-[0_30px_80px_-30px_rgba(79,70,229,0.5)]"
+                : "border-slate-200 bg-white shadow-[0_15px_45px_-30px_rgba(15,23,42,0.2)] hover:-translate-y-1 hover:border-indigo-200 hover:shadow-[0_25px_60px_-30px_rgba(79,70,229,0.25)]"
+            }`}
+
           >
             {plan.highlight && (
               <span className="mb-3 w-fit rounded bg-[#0C66E4] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
@@ -81,7 +85,7 @@ const Pricing = ({ showChrome = true }) => (
               to={plan.price === "Custom" ? "/contact" : "/"}
               className={`mt-8 flex h-10 items-center justify-center rounded text-[13px] font-medium ${plan.highlight
                   ? "bg-indigo-600 text-white hover:bg-indigo-700"
-                  : "border border-[#DCDFE4] text-[#172B4D] hover:bg-[#F1F2F4]"
+                  : "border border-[#DCDFE4] text-[#172B4D] hover:bg-indigo-750"
                 }`}
             >
               {plan.cta}

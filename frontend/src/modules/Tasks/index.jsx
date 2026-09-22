@@ -46,6 +46,10 @@ import {
   RefreshCw,
   Wand2,
   Lightbulb,
+  ArrowUpRight,
+  ShieldCheck,
+  Layers3,
+  Clock3,
 } from "lucide-react";
 import { tasksAPI } from "../../api/task";
 import { projectsAPI } from "../../api/project";
@@ -439,7 +443,7 @@ const Tasks = ({ user }) => {
   );
 };
 
-/* ─── Board Grid ─────────────────────────────────────────────── */
+/* ─── Table ─────────────────────────────────────────────────── */
 const TABLE_STATUS_META = {
   todo: { label: "Backlog", className: "bg-slate-800 text-white" },
   in_progress: { label: "In Progress", className: "bg-[#176B78] text-white" },
@@ -617,12 +621,8 @@ const ListView = ({ tasks, onOpen, canManageTask }) => (
             const isOverdue = task.due_date && new Date(task.due_date) < new Date() && task.status !== "done";
             return (
               <tr key={task.id} className="cursor-pointer transition hover:bg-slate-50 dark:hover:bg-slate-800/50" onClick={() => onOpen(task.id)}>
-                <td className="py-3 px-4">
-                  <span className="font-mono text-[11px] font-semibold text-[#0052CC]">TASK-{task.id}</span>
-                </td>
-                <td className="py-3 px-4">
-                  <p className="font-medium text-slate-800 dark:text-slate-100 truncate max-w-xs">{task.summary}</p>
-                </td>
+                <td className="py-3 px-4"><span className="font-mono text-[11px] font-semibold text-[#0052CC]">TASK-{task.id}</span></td>
+                <td className="py-3 px-4"><p className="font-medium text-slate-800 dark:text-slate-100 truncate max-w-xs">{task.summary}</p></td>
                 <td className="py-3 px-4">
                   {task.project ? (
                     <span className="inline-flex items-center gap-1 rounded bg-indigo-50 dark:bg-indigo-950/40 px-1.5 py-0.5 text-[10px] font-medium text-indigo-700 dark:text-indigo-300">
@@ -944,12 +944,7 @@ const IssueDetailView = ({
   };
 
   const resetSubtaskForm = () => {
-    setSubtaskForm({
-      title: "",
-      description: "",
-      date: new Date().toISOString().slice(0, 10),
-      status: "todo",
-    });
+    setSubtaskForm({ title: "", description: "", date: new Date().toISOString().slice(0, 10), status: "todo" });
     setSelectedFiles([]);
     setEditingSubtaskId(null);
     setSubtaskFormOpen(false);
@@ -990,9 +985,7 @@ const IssueDetailView = ({
       if (editingSubtaskId) {
         const res = await tasksAPI.updateSubtask(task.id, editingSubtaskId, payload);
         const saved = res?.data || res;
-        setSubtasks((items) =>
-          items.map((item) => (item.id === editingSubtaskId ? { ...item, ...saved } : item))
-        );
+        setSubtasks((items) => items.map((item) => (item.id === editingSubtaskId ? { ...item, ...saved } : item)));
       } else {
         const res = await tasksAPI.createSubtask(task.id, payload);
         const saved = res?.data || res;
@@ -1014,18 +1007,14 @@ const IssueDetailView = ({
 
   const handleToggleSubtask = async (subtask) => {
     const next = subtask.status === "done" ? "todo" : "done";
-    setSubtasks((items) =>
-      items.map((item) => (item.id === subtask.id ? { ...item, status: next } : item))
-    );
+    setSubtasks((items) => items.map((item) => (item.id === subtask.id ? { ...item, status: next } : item)));
     const payload = new FormData();
     payload.append("status", next);
     try {
       await tasksAPI.updateSubtask(task.id, subtask.id, payload);
       reloadSubtasks();
     } catch {
-      setSubtasks((items) =>
-        items.map((item) => (item.id === subtask.id ? { ...item, status: subtask.status } : item))
-      );
+      setSubtasks((items) => items.map((item) => (item.id === subtask.id ? { ...item, status: subtask.status } : item)));
     }
   };
 
@@ -1081,9 +1070,7 @@ const IssueDetailView = ({
 
       <div className="mx-auto flex max-w-[1400px] flex-col gap-6 px-4 py-6 lg:flex-row">
         <div className="flex-1 min-w-0 space-y-5">
-          <h1 className="text-2xl font-semibold leading-snug text-slate-900 dark:text-white">
-            {task.summary}
-          </h1>
+          <h1 className="text-2xl font-semibold leading-snug text-slate-900 dark:text-white">{task.summary}</h1>
 
           {task.description && (
             <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
@@ -1101,43 +1088,29 @@ const IssueDetailView = ({
                 <div>
                   <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-100">Subtasks</h3>
                   <p className="text-[11px] text-slate-400 dark:text-slate-500">
-                    {subtasks.length > 0
-                      ? `${doneSubtasks} of ${subtasks.length} completed`
-                      : "Break this issue into smaller pieces of work"}
+                    {subtasks.length > 0 ? `${doneSubtasks} of ${subtasks.length} completed` : "Break this issue into smaller pieces of work"}
                   </p>
                 </div>
                 {subtasks.length > 0 && (
-                  <span className="ml-1 rounded-full bg-slate-200 dark:bg-slate-800 px-2 py-0.5 text-[10px] font-bold text-slate-600 dark:text-slate-400">
-                    {subtaskPct}%
-                  </span>
+                  <span className="ml-1 rounded-full bg-slate-200 dark:bg-slate-800 px-2 py-0.5 text-[10px] font-bold text-slate-600 dark:text-slate-400">{subtaskPct}%</span>
                 )}
               </div>
               <button
-                onClick={() => {
-                  if (subtaskFormOpen) resetSubtaskForm();
-                  else setSubtaskFormOpen(true);
-                }}
+                onClick={() => { if (subtaskFormOpen) resetSubtaskForm(); else setSubtaskFormOpen(true); }}
                 className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
                   subtaskFormOpen
                     ? "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200"
                     : "bg-[#0052CC] text-white hover:bg-[#0747A6] shadow-sm"
                 }`}
               >
-                {subtaskFormOpen ? (
-                  <><X className="h-3.5 w-3.5" /> Cancel</>
-                ) : (
-                  <><Plus className="h-3.5 w-3.5" /> Add subtask</>
-                )}
+                {subtaskFormOpen ? (<><X className="h-3.5 w-3.5" /> Cancel</>) : (<><Plus className="h-3.5 w-3.5" /> Add subtask</>)}
               </button>
             </div>
 
             {subtasks.length > 0 && (
               <div className="px-4 pt-3 pb-1">
                 <div className="h-1.5 w-full rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
-                  <div
-                    className="h-full rounded-full bg-gradient-to-r from-[#0052CC] to-blue-400 transition-all duration-500 ease-out"
-                    style={{ width: `${subtaskPct}%` }}
-                  />
+                  <div className="h-full rounded-full bg-gradient-to-r from-[#0052CC] to-blue-400 transition-all duration-500 ease-out" style={{ width: `${subtaskPct}%` }} />
                 </div>
               </div>
             )}
@@ -1149,9 +1122,7 @@ const IssueDetailView = ({
                     <Layers className="h-5 w-5 text-slate-400" />
                   </div>
                   <p className="text-sm font-medium text-slate-500 dark:text-slate-400">No subtasks yet</p>
-                  <p className="mt-0.5 text-xs text-slate-400 dark:text-slate-500">
-                    Click "Add subtask" to get started
-                  </p>
+                  <p className="mt-0.5 text-xs text-slate-400 dark:text-slate-500">Click "Add subtask" to get started</p>
                 </div>
               )}
 
@@ -1168,11 +1139,7 @@ const IssueDetailView = ({
             </div>
 
             {subtaskFormOpen && (
-              <form
-                id="subtask-form-anchor"
-                onSubmit={handleAddSubtask}
-                className="border-t border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-950/30 p-4 space-y-3"
-              >
+              <form id="subtask-form-anchor" onSubmit={handleAddSubtask} className="border-t border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-950/30 p-4 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <div className="h-2 w-2 rounded-full bg-[#0052CC]" />
@@ -1181,9 +1148,7 @@ const IssueDetailView = ({
                     </h4>
                   </div>
                   {editingSubtaskId && (
-                    <span className="rounded-md bg-[#0052CC]/10 px-2 py-0.5 text-[10px] font-bold text-[#0052CC]">
-                      Editing #{editingSubtaskId}
-                    </span>
+                    <span className="rounded-md bg-[#0052CC]/10 px-2 py-0.5 text-[10px] font-bold text-[#0052CC]">Editing #{editingSubtaskId}</span>
                   )}
                 </div>
 
@@ -1196,8 +1161,7 @@ const IssueDetailView = ({
 
                 <div className="space-y-2.5">
                   <input
-                    autoFocus
-                    required
+                    autoFocus required
                     value={subtaskForm.title}
                     onChange={(e) => setSubtaskForm({ ...subtaskForm, title: e.target.value })}
                     placeholder="Subtask title"
@@ -1212,25 +1176,12 @@ const IssueDetailView = ({
                   />
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                        Due date
-                      </label>
-                      <input
-                        type="date"
-                        value={subtaskForm.date}
-                        onChange={(e) => setSubtaskForm({ ...subtaskForm, date: e.target.value })}
-                        className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-xs outline-none focus:border-[#0052CC] focus:ring-2 focus:ring-[#0052CC]/15"
-                      />
+                      <label className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-slate-500">Due date</label>
+                      <input type="date" value={subtaskForm.date} onChange={(e) => setSubtaskForm({ ...subtaskForm, date: e.target.value })} className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-xs outline-none focus:border-[#0052CC] focus:ring-2 focus:ring-[#0052CC]/15" />
                     </div>
                     <div>
-                      <label className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                        Status
-                      </label>
-                      <select
-                        value={subtaskForm.status}
-                        onChange={(e) => setSubtaskForm({ ...subtaskForm, status: e.target.value })}
-                        className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-xs outline-none focus:border-[#0052CC] focus:ring-2 focus:ring-[#0052CC]/15"
-                      >
+                      <label className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-slate-500">Status</label>
+                      <select value={subtaskForm.status} onChange={(e) => setSubtaskForm({ ...subtaskForm, status: e.target.value })} className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-xs outline-none focus:border-[#0052CC] focus:ring-2 focus:ring-[#0052CC]/15">
                         <option value="todo">To Do</option>
                         <option value="in_progress">In Progress</option>
                         <option value="done">Done</option>
@@ -1241,30 +1192,16 @@ const IssueDetailView = ({
                   <label className="flex cursor-pointer items-center gap-2.5 rounded-lg border border-dashed border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2.5 text-xs text-slate-500 transition-colors hover:border-[#0052CC] hover:bg-[#0052CC]/5">
                     <Upload className="h-3.5 w-3.5" />
                     <span className="truncate">
-                      {selectedFiles.length
-                        ? `${selectedFiles.length} file(s) selected`
-                        : editingSubtaskId
-                          ? "Attach additional files (optional)"
-                          : "Attach files (optional)"}
+                      {selectedFiles.length ? `${selectedFiles.length} file(s) selected` : editingSubtaskId ? "Attach additional files (optional)" : "Attach files (optional)"}
                     </span>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      multiple
-                      className="hidden"
-                      onChange={(e) => setSelectedFiles(Array.from(e.target.files || []))}
-                    />
+                    <input ref={fileInputRef} type="file" multiple className="hidden" onChange={(e) => setSelectedFiles(Array.from(e.target.files || []))} />
                   </label>
 
                   {selectedFiles.length > 0 && (
                     <div className="flex flex-wrap gap-1.5">
                       {selectedFiles.map((f, i) => (
-                        <span
-                          key={i}
-                          className="inline-flex items-center gap-1 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1 text-[10px] font-medium text-slate-600 dark:text-slate-300"
-                        >
-                          <FileText className="h-3 w-3 text-[#0052CC]" />
-                          {f.name}
+                        <span key={i} className="inline-flex items-center gap-1 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1 text-[10px] font-medium text-slate-600 dark:text-slate-300">
+                          <FileText className="h-3 w-3 text-[#0052CC]" />{f.name}
                         </span>
                       ))}
                     </div>
@@ -1272,18 +1209,8 @@ const IssueDetailView = ({
                 </div>
 
                 <div className="flex justify-end gap-2 pt-1">
-                  <button
-                    type="button"
-                    onClick={resetSubtaskForm}
-                    className="rounded-lg px-3.5 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={subtaskLoading}
-                    className="inline-flex items-center gap-1.5 rounded-lg bg-[#0052CC] px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-[#0747A6] disabled:opacity-50 transition-colors"
-                  >
+                  <button type="button" onClick={resetSubtaskForm} className="rounded-lg px-3.5 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 transition-colors">Cancel</button>
+                  <button type="submit" disabled={subtaskLoading} className="inline-flex items-center gap-1.5 rounded-lg bg-[#0052CC] px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-[#0747A6] disabled:opacity-50 transition-colors">
                     {subtaskLoading && <Loader className="h-3.5 w-3.5 animate-spin" />}
                     {subtaskLoading ? "Saving…" : editingSubtaskId ? "Save changes" : "Create subtask"}
                   </button>
@@ -1297,9 +1224,7 @@ const IssueDetailView = ({
               <div className="mb-3 flex items-center gap-2">
                 <Paperclip className="h-4 w-4 text-slate-500" />
                 <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">Attachments</h3>
-                <span className="rounded bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 text-[10px] font-bold text-slate-600 dark:text-slate-400">
-                  {allAttachments.length}
-                </span>
+                <span className="rounded bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 text-[10px] font-bold text-slate-600 dark:text-slate-400">{allAttachments.length}</span>
               </div>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
                 {allAttachments.map((a, i) => (
@@ -1321,9 +1246,7 @@ const IssueDetailView = ({
             <div className="border-b border-slate-200 dark:border-slate-800 px-4 pt-4">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">Activity</h3>
-                <button className="rounded p-1 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800">
-                  <MoreHorizontal className="h-4 w-4" />
-                </button>
+                <button className="rounded p-1 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"><MoreHorizontal className="h-4 w-4" /></button>
               </div>
               <div className="flex gap-1">
                 {[
@@ -1333,17 +1256,13 @@ const IssueDetailView = ({
                 ].map((tab) => {
                   const TabIcon = tab.icon;
                   return (
-                    <button
-                      key={tab.k}
-                      onClick={() => setActiveTab(tab.k)}
+                    <button key={tab.k} onClick={() => setActiveTab(tab.k)}
                       className={`relative inline-flex items-center gap-1.5 rounded-t-md px-3 py-2 text-xs font-semibold transition ${
                         activeTab === tab.k
                           ? "text-[#0052CC] after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:bg-[#0052CC]"
                           : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
-                      }`}
-                    >
-                      <TabIcon className="h-3.5 w-3.5" />
-                      {tab.label}
+                      }`}>
+                      <TabIcon className="h-3.5 w-3.5" />{tab.label}
                     </button>
                   );
                 })}
@@ -1355,26 +1274,14 @@ const IssueDetailView = ({
                 <>
                   <form onSubmit={handleAddComment} className="mb-5">
                     <div className="rounded-lg border border-slate-200 dark:border-slate-700 focus-within:border-[#0052CC] focus-within:ring-1 focus-within:ring-[#0052CC]/30 transition">
-                      <textarea
-                        rows={2}
-                        value={commentText}
-                        onChange={(e) => setCommentText(e.target.value)}
-                        placeholder="Add a comment..."
-                        className="w-full resize-none rounded-t-lg bg-white dark:bg-slate-900 px-3 py-2.5 text-sm outline-none"
-                      />
+                      <textarea rows={2} value={commentText} onChange={(e) => setCommentText(e.target.value)} placeholder="Add a comment..." className="w-full resize-none rounded-t-lg bg-white dark:bg-slate-900 px-3 py-2.5 text-sm outline-none" />
                       <div className="flex items-center justify-between border-t border-slate-100 dark:border-slate-800 px-2 py-1.5">
                         <div className="flex items-center gap-1">
                           <button type="button" className="rounded p-1 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"><Paperclip className="h-3.5 w-3.5" /></button>
                           <button type="button" className="rounded p-1 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"><Smile className="h-3.5 w-3.5" /></button>
                           <button type="button" className="rounded p-1 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"><AtSign className="h-3.5 w-3.5" /></button>
                         </div>
-                        <button
-                          type="submit"
-                          disabled={!commentText.trim()}
-                          className="rounded-md bg-[#0052CC] px-3 py-1 text-xs font-semibold text-white hover:bg-[#0747A6] disabled:opacity-40"
-                        >
-                          Comment
-                        </button>
+                        <button type="submit" disabled={!commentText.trim()} className="rounded-md bg-[#0052CC] px-3 py-1 text-xs font-semibold text-white hover:bg-[#0747A6] disabled:opacity-40">Comment</button>
                       </div>
                     </div>
                   </form>
@@ -1387,19 +1294,13 @@ const IssueDetailView = ({
                         const author = c.author?.full_name || c.author?.username || "User";
                         return (
                           <div key={c.id} className="flex gap-3">
-                            <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br ${avatarColor(author)} text-[10px] font-bold text-white`}>
-                              {initials(author)}
-                            </div>
+                            <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br ${avatarColor(author)} text-[10px] font-bold text-white`}>{initials(author)}</div>
                             <div className="min-w-0 flex-1">
                               <div className="flex items-baseline gap-2">
                                 <span className="text-sm font-semibold text-slate-800 dark:text-slate-200">{author}</span>
-                                <span className="text-[11px] text-slate-400">
-                                  {new Date(c.created_at || Date.now()).toLocaleString()}
-                                </span>
+                                <span className="text-[11px] text-slate-400">{new Date(c.created_at || Date.now()).toLocaleString()}</span>
                               </div>
-                              <div className="mt-1.5 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 px-3 py-2 text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap">
-                                {c.body}
-                              </div>
+                              <div className="mt-1.5 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 px-3 py-2 text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap">{c.body}</div>
                             </div>
                           </div>
                         );
@@ -1408,12 +1309,8 @@ const IssueDetailView = ({
                   )}
                 </>
               )}
-              {activeTab === "history" && (
-                <p className="py-6 text-center text-xs text-slate-400">History will show changes to this issue.</p>
-              )}
-              {activeTab === "worklog" && (
-                <p className="py-6 text-center text-xs text-slate-400">No work logged yet.</p>
-              )}
+              {activeTab === "history" && <p className="py-6 text-center text-xs text-slate-400">History will show changes to this issue.</p>}
+              {activeTab === "worklog" && <p className="py-6 text-center text-xs text-slate-400">No work logged yet.</p>}
             </div>
           </div>
         </div>
@@ -1422,18 +1319,13 @@ const IssueDetailView = ({
           <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
             <div className="mb-3 flex items-center justify-between">
               <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">Details</h3>
-              {canManage && (
-                <button onClick={() => onEdit(task)} className="text-xs font-medium text-[#0052CC] hover:underline">Edit</button>
-              )}
+              {canManage && <button onClick={() => onEdit(task)} className="text-xs font-medium text-[#0052CC] hover:underline">Edit</button>}
             </div>
 
             <div className="space-y-4">
               <DetailRow label="Status" icon={StatusIcon}>
-                <select
-                  value={task.status}
-                  onChange={(e) => onStatusChange(task.id, e.target.value)}
-                  className="rounded-md border border-transparent bg-transparent text-xs font-semibold text-slate-700 dark:text-slate-200 hover:border-slate-200 dark:hover:border-slate-700 focus:border-[#0052CC] outline-none px-1 py-0.5"
-                >
+                <select value={task.status} onChange={(e) => onStatusChange(task.id, e.target.value)}
+                  className="rounded-md border border-transparent bg-transparent text-xs font-semibold text-slate-700 dark:text-slate-200 hover:border-slate-200 dark:hover:border-slate-700 focus:border-[#0052CC] outline-none px-1 py-0.5">
                   <option value="todo">To Do</option>
                   <option value="in_progress">In Progress</option>
                   <option value="done">Done</option>
@@ -1446,20 +1338,14 @@ const IssueDetailView = ({
                     <div className={`flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br ${avatarColor(task.assignee.username)} text-[9px] font-bold text-white`}>
                       {initials(task.assignee.full_name || task.assignee.username)}
                     </div>
-                    <span className="text-xs font-medium text-slate-700 dark:text-slate-200">
-                      {task.assignee.full_name || task.assignee.username}
-                    </span>
+                    <span className="text-xs font-medium text-slate-700 dark:text-slate-200">{task.assignee.full_name || task.assignee.username}</span>
                   </div>
-                ) : (
-                  <span className="text-xs italic text-slate-400">Unassigned</span>
-                )}
+                ) : <span className="text-xs italic text-slate-400">Unassigned</span>}
               </DetailRow>
 
               <DetailRow label="Reporter">
                 <div className="flex items-center gap-2">
-                  <div className={`flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br ${avatarColor("reporter")} text-[9px] font-bold text-white`}>
-                    {initials("Reporter User")}
-                  </div>
+                  <div className={`flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br ${avatarColor("reporter")} text-[9px] font-bold text-white`}>{initials("Reporter User")}</div>
                   <span className="text-xs font-medium text-slate-700 dark:text-slate-200">You</span>
                 </div>
               </DetailRow>
@@ -1472,17 +1358,13 @@ const IssueDetailView = ({
 
               {task.due_date && (
                 <DetailRow label="Due date">
-                  <span className="text-xs text-slate-700 dark:text-slate-200">
-                    {new Date(task.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-                  </span>
+                  <span className="text-xs text-slate-700 dark:text-slate-200">{new Date(task.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>
                 </DetailRow>
               )}
 
               {task.start_date && (
                 <DetailRow label="Start date">
-                  <span className="text-xs text-slate-700 dark:text-slate-200">
-                    {new Date(task.start_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-                  </span>
+                  <span className="text-xs text-slate-700 dark:text-slate-200">{new Date(task.start_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>
                 </DetailRow>
               )}
 
@@ -1505,21 +1387,14 @@ const IssueDetailView = ({
               )}
             </div>
 
-            <button
-              onClick={() => setShowMoreFields((v) => !v)}
-              className="mt-4 inline-flex items-center gap-1 text-xs font-medium text-[#0052CC] hover:underline"
-            >
+            <button onClick={() => setShowMoreFields((v) => !v)} className="mt-4 inline-flex items-center gap-1 text-xs font-medium text-[#0052CC] hover:underline">
               {showMoreFields ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
               {showMoreFields ? "Hide" : "Show"} more fields
             </button>
             {showMoreFields && (
               <div className="mt-3 space-y-3 border-t border-slate-100 dark:border-slate-800 pt-3">
-                <DetailRow label="Created">
-                  <span className="text-xs text-slate-500">{new Date().toLocaleDateString()}</span>
-                </DetailRow>
-                <DetailRow label="Updated">
-                  <span className="text-xs text-slate-500">{new Date().toLocaleDateString()}</span>
-                </DetailRow>
+                <DetailRow label="Created"><span className="text-xs text-slate-500">{new Date().toLocaleDateString()}</span></DetailRow>
+                <DetailRow label="Updated"><span className="text-xs text-slate-500">{new Date().toLocaleDateString()}</span></DetailRow>
               </div>
             )}
           </div>
@@ -1539,7 +1414,7 @@ const DetailRow = ({ label, icon: Icon, children }) => (
   </div>
 );
 
-/* ─── Create / Edit Modal ──────────────────────────────────────── */
+/* ─── Create / Edit Modal — Premium Layout with Project FIRST ──── */
 const CreateTaskModal = ({
   isEditMode, editingTaskId, formData, setFormData, projects, usersList,
   modalError, modalLoading, onSubmit, onClose,
@@ -1549,10 +1424,49 @@ const CreateTaskModal = ({
   const [aiUsed, setAiUsed] = useState(false);
   const [aiMode, setAiMode] = useState("");
 
+  const descriptionRef = useRef(null);
+  const popupRef = useRef(null);
+  const [showSummaryLimitPopup, setShowSummaryLimitPopup] = useState(false);
+
+  const MAX_SUMMARY_LENGTH = 255;
+
   const hasDescription = formData.description.trim().length > 0;
   const buttonLabel = hasDescription
     ? aiUsed ? "Regenerate" : "Enhance with AI"
     : "Generate with AI";
+
+  const selectedProject = projects.find((p) => String(p.id) === String(formData.project_id));
+  const selectedAssignee = usersList.find((u) => String(u.id) === String(formData.assigned_to));
+
+  // Auto-grow description
+  useEffect(() => {
+    const el = descriptionRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    const next = Math.max(140, el.scrollHeight);
+    el.style.height = `${next}px`;
+  }, [formData.description]);
+
+  // Cleanup popup timer
+  useEffect(() => {
+    return () => { if (popupRef.current) clearTimeout(popupRef.current); };
+  }, []);
+
+  const triggerSummaryLimit = () => {
+    setShowSummaryLimitPopup(true);
+    if (popupRef.current) clearTimeout(popupRef.current);
+    popupRef.current = setTimeout(() => setShowSummaryLimitPopup(false), 3000);
+  };
+
+  const handleSummaryChange = (e) => {
+    const value = e.target.value;
+    if (value.length > MAX_SUMMARY_LENGTH) {
+      triggerSummaryLimit();
+      setFormData({ ...formData, summary: value.slice(0, MAX_SUMMARY_LENGTH) });
+      return;
+    }
+    setFormData({ ...formData, summary: value });
+  };
 
   const handleAISuggest = async () => {
     const taskTitle = formData.summary.trim();
@@ -1586,235 +1500,560 @@ const CreateTaskModal = ({
 
   const handleDescriptionChange = (e) => {
     setFormData({ ...formData, description: e.target.value });
-    if (aiUsed) {
-      setAiUsed(false);
-      setAiMode("");
-    }
+    if (aiUsed) { setAiUsed(false); setAiMode(""); }
   };
 
+  // Progress computation
+  const progressItems = [
+    { label: "Project", complete: Boolean(formData.project_id) },
+    { label: "Summary", complete: Boolean(formData.summary.trim()) },
+    { label: "Description", complete: Boolean(formData.description.trim()) },
+    { label: "Assignee", complete: Boolean(formData.assigned_to) },
+    { label: "Timeline", complete: Boolean(formData.due_date || formData.start_date) },
+  ];
+  const completedSteps = progressItems.filter((i) => i.complete).length;
+  const completion = Math.round((completedSteps / progressItems.length) * 100);
+
+  const descriptionCharCount = formData.description.length;
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xl">
-        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-[#D6DCE8] bg-white px-5 py-4 dark:border-slate-800 dark:bg-slate-900">
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded bg-[#0C66E4] text-white">
-              <CheckSquare className="h-4 w-4" />
-            </div>
-            <div>
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-                {isEditMode ? `Edit TASK-${editingTaskId}` : "New task item"}
-              </h3>
-              <p className="text-[11px] text-slate-500">Required fields are marked *</p>
-            </div>
-          </div>
-          <button onClick={onClose} className="rounded p-1.5 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800">
-            <X className="h-4 w-4" />
-          </button>
-        </div>
+    <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-hidden bg-slate-950/75 p-3 backdrop-blur-md sm:p-5">
+      <div className="relative flex h-[94vh] w-full max-w-[1220px] overflow-hidden rounded-[28px] border border-white/10 bg-white shadow-[0_40px_120px_rgba(15,23,42,0.35)] dark:border-slate-800 dark:bg-[#080d18]">
 
-        <form onSubmit={onSubmit} className="space-y-5 p-5">
-          {modalError && (
-            <div className="rounded-md bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/60 p-3 text-xs font-medium text-red-700 dark:text-red-300">
-              {modalError}
-            </div>
-          )}
-
-          <div>
-            <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1.5">
-              Summary <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text" required
-              value={formData.summary}
-              onChange={(e) => setFormData({ ...formData, summary: e.target.value })}
-              placeholder="What needs to be done?"
-              className="w-full rounded border border-[#C7D0E0] bg-white px-3 py-2.5 text-sm outline-none focus:border-[#0C66E4] focus:ring-2 focus:ring-[#0C66E4]/15 dark:border-slate-700 dark:bg-slate-950"
+        {/* LEFT RAIL */}
+        <aside className="relative hidden w-[330px] shrink-0 overflow-hidden bg-[#0a1020] text-white lg:flex lg:flex-col">
+          <div className="pointer-events-none absolute inset-0 overflow-hidden">
+            <div className="absolute -left-24 -top-24 h-72 w-72 rounded-full bg-indigo-600/20 blur-3xl" />
+            <div className="absolute -bottom-20 -right-20 h-72 w-72 rounded-full bg-blue-500/10 blur-3xl" />
+            <div
+              className="absolute inset-0 opacity-[0.035]"
+              style={{
+                backgroundImage:
+                  "linear-gradient(rgba(255,255,255,.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.5) 1px, transparent 1px)",
+                backgroundSize: "28px 28px",
+              }}
             />
           </div>
 
-          {/* ✨ DESCRIPTION with AI */}
-          <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
-                Description <span className="text-red-500">*</span>
-              </label>
-
-              <button
-                type="button"
-                onClick={handleAISuggest}
-                disabled={aiLoading || !formData.summary.trim()}
-                className="group relative inline-flex items-center gap-1.5 overflow-hidden rounded-full bg-gradient-to-r from-violet-500 via-indigo-500 to-blue-500 px-3 py-1.5 text-xs font-semibold text-white shadow-md shadow-violet-500/20 transition-all hover:shadow-lg hover:shadow-violet-500/40 hover:scale-[1.03] active:scale-[0.98] disabled:from-slate-300 disabled:via-slate-300 disabled:to-slate-400 disabled:cursor-not-allowed disabled:shadow-none disabled:hover:scale-100 dark:disabled:from-slate-700 dark:disabled:via-slate-700 dark:disabled:to-slate-800"
-                title={!formData.summary.trim() ? "Enter a task summary first" : buttonLabel}
-              >
-                {!aiLoading && formData.summary.trim() && (
-                  <span className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/30 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
-                )}
-                {aiLoading ? (
-                  <><Loader className="h-3 w-3 animate-spin" /><span>Generating...</span></>
-                ) : aiUsed ? (
-                  <><RefreshCw className="h-3 w-3" /><span>Regenerate</span></>
-                ) : hasDescription ? (
-                  <><Wand2 className="h-3 w-3" /><span>Enhance with AI</span></>
-                ) : (
-                  <><Sparkles className="h-3 w-3" /><span>Generate with AI</span></>
-                )}
-              </button>
+          <div className="relative flex h-full flex-col p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-500/15 ring-1 ring-indigo-400/20">
+                  <Layers3 className="h-4 w-4 text-indigo-300" />
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-indigo-300/80">Workspace</p>
+                  <p className="text-sm font-semibold text-white">Task Studio</p>
+                </div>
+              </div>
+              <div className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[10px] font-medium text-slate-400">
+                {isEditMode ? "EDIT" : "NEW"}
+              </div>
             </div>
 
-            <p className="mb-2 text-[11px] text-slate-400 dark:text-slate-500 flex items-center gap-1">
-              <Lightbulb className="h-3 w-3" />
-              {hasDescription
-                ? "AI will enhance your existing description — or write fresh if it's too short."
-                : "Write your own, or let AI generate a clear description from the task summary."}
-            </p>
-
-            <div className="relative">
-              <div
-                className={`rounded-lg p-[1.5px] transition-all duration-300 ${
-                  aiLoading
-                    ? "bg-gradient-to-r from-violet-400 via-indigo-400 to-blue-400 animate-pulse"
-                    : aiUsed
-                    ? "bg-gradient-to-r from-violet-300 to-indigo-300 dark:from-violet-800 dark:to-indigo-800"
-                    : "bg-transparent"
-                }`}
-              >
-                <textarea
-                  rows={4}
-                  required
-                  value={formData.description}
-                  onChange={handleDescriptionChange}
-                  disabled={aiLoading}
-                  placeholder={
-                    formData.summary.trim()
-                      ? hasDescription ? "" : "Click 'Generate with AI' to auto-write, or type your own..."
-                      : "Enter a task summary first, then let AI write it for you..."
-                  }
-                  className={`w-full resize-none rounded-md border px-3 py-2.5 text-sm leading-relaxed outline-none transition-all disabled:cursor-not-allowed ${
-                    aiLoading
-                      ? "border-violet-300 dark:border-violet-700 opacity-70"
-                      : aiUsed
-                      ? "border-violet-200 dark:border-violet-900 focus:border-violet-500 focus:ring-2 focus:ring-violet-200 dark:focus:ring-violet-900/50"
-                      : "border-[#C7D0E0] dark:border-slate-700 focus:border-[#0C66E4] focus:ring-2 focus:ring-[#0C66E4]/15"
-                  } bg-white dark:bg-slate-950 dark:text-slate-200`}
-                />
+            {/* Preview */}
+            <div className="mt-10">
+              <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">Task identity</p>
+              <div className="relative overflow-hidden rounded-[22px] border border-white/10 bg-white/[0.045] p-5">
+                <div className="absolute right-0 top-0 h-24 w-24 rounded-full bg-indigo-500/10 blur-2xl" />
+                <div className="relative">
+                  <div className="mb-5 flex items-center justify-between">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-blue-500 shadow-lg shadow-indigo-900/30">
+                      <CheckSquare className="h-5 w-5 text-white" />
+                    </div>
+                    <div className="flex items-center gap-1.5 rounded-full border border-emerald-400/10 bg-emerald-400/10 px-2.5 py-1">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                      <span className="text-[10px] font-semibold text-emerald-300">
+                        {isEditMode ? `TASK-${editingTaskId}` : "New"}
+                      </span>
+                    </div>
+                  </div>
+                  {selectedProject && (
+                    <div className="mb-3 inline-flex items-center gap-1.5 rounded-full bg-indigo-500/15 px-2.5 py-1 text-[10px] font-semibold text-indigo-300 ring-1 ring-indigo-400/20">
+                      <Folder className="h-2.5 w-2.5" />
+                      {selectedProject.summary}
+                    </div>
+                  )}
+                  <h3 className="break-words text-[12px] font-semibold leading-[1.1] tracking-[-0.035em] text-white">
+                    {formData.summary.trim() || "Untitled task"}
+                  </h3>
+                  <p className="mt-3 line-clamp-4 text-xs leading-5 text-slate-400">
+                    {formData.description.trim() || "Your task brief will appear here as you build it."}
+                  </p>
+                </div>
               </div>
+            </div>
 
-              {aiLoading && (
-                <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-md bg-white/60 dark:bg-slate-950/60 backdrop-blur-[1px]">
-                  <div className="flex items-center gap-2 rounded-full bg-gradient-to-r from-violet-50 to-indigo-50 dark:from-violet-950/60 dark:to-indigo-950/60 px-3.5 py-2 shadow-sm border border-violet-200 dark:border-violet-800">
-                    <Sparkles className="h-3.5 w-3.5 text-violet-600 dark:text-violet-400 animate-pulse" />
-                    <span className="text-xs font-medium text-violet-700 dark:text-violet-300">
-                      AI is {hasDescription ? "enhancing" : "writing"}...
-                    </span>
+            {/* Progress */}
+            <div className="mt-7">
+              <div className="mb-3 flex items-center justify-between">
+                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">Task pulse</p>
+                <span className="text-[11px] font-semibold text-indigo-300">{completion}%</span>
+              </div>
+              <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
+                <div className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-blue-400 transition-all duration-500" style={{ width: `${completion}%` }} />
+              </div>
+              <div className="mt-4 space-y-2.5">
+                {progressItems.map((item) => (
+                  <div key={item.label} className="flex items-center gap-3">
+                    <div className={`flex h-5 w-5 items-center justify-center rounded-full border ${item.complete ? "border-indigo-400/40 bg-indigo-500/20 text-indigo-300" : "border-white/10 bg-white/[0.03] text-slate-600"}`}>
+                      {item.complete ? <CheckCircle2 className="h-3 w-3" /> : <CircleDot className="h-3 w-3" />}
+                    </div>
+                    <span className={`text-xs ${item.complete ? "text-slate-200" : "text-slate-500"}`}>{item.label}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Metadata */}
+            <div className="mt-auto grid grid-cols-2 gap-2">
+              <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-3">
+                <div className="mb-2 flex h-7 w-7 items-center justify-center rounded-lg bg-white/5">
+                  <Flame className="h-3.5 w-3.5 text-slate-400" />
+                </div>
+                <p className="text-[13px] font-semibold capitalize text-white">{formData.priority || "medium"}</p>
+                <p className="text-[10px] text-slate-500">Priority</p>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-3">
+                <div className="mb-2 flex h-7 w-7 items-center justify-center rounded-lg bg-white/5">
+                  <ShieldCheck className="h-3.5 w-3.5 text-slate-400" />
+                </div>
+                <p className="text-[13px] font-semibold capitalize text-white">
+                  {formData.status.replace("_", " ")}
+                </p>
+                <p className="text-[10px] text-slate-500">Status</p>
+              </div>
+            </div>
+          </div>
+        </aside>
+
+        {/* MAIN EDITOR */}
+        <div className="flex min-w-0 flex-1 flex-col">
+          <div className="flex shrink-0 items-center justify-between border-b border-slate-200/80 bg-white/90 px-5 py-4 backdrop-blur-xl dark:border-slate-800 dark:bg-[#080d18]/90 sm:px-7">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-50 dark:bg-indigo-500/10">
+                <Sparkles className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+              </div>
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">
+                  {isEditMode ? `TASK-${editingTaskId}` : "Create task"}
+                </p>
+                <h2 className="text-sm font-semibold text-slate-900 dark:text-white">
+                  {isEditMode ? "Shape this task" : "Describe the work"}
+                </h2>
+              </div>
+            </div>
+            <button type="button" onClick={onClose} aria-label="Close"
+              className="group flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-400 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-slate-800 dark:hover:text-slate-200">
+              <X className="h-4 w-4 transition-transform group-hover:rotate-90" />
+            </button>
+          </div>
+
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            <form id="task-form" onSubmit={onSubmit} className="mx-auto w-full max-w-[900px] px-5 py-8 pb-32 sm:px-8 lg:px-10">
+              {modalError && (
+                <div className="mb-7 flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3.5 dark:border-red-900/60 dark:bg-red-950/20">
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-red-100 dark:bg-red-900/30">
+                    <AlertCircle className="h-3.5 w-3.5 text-red-600 dark:text-red-400" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-red-700 dark:text-red-300">Something needs your attention</p>
+                    <p className="mt-0.5 text-xs leading-5 text-red-600 dark:text-red-400">{modalError}</p>
                   </div>
                 </div>
               )}
-            </div>
 
-            {aiUsed && !aiLoading && !aiError && (
-              <div className="mt-2 flex items-center gap-1.5 text-xs font-medium text-violet-600 dark:text-violet-400">
-                <div className="flex h-4 w-4 items-center justify-center rounded-full bg-violet-100 dark:bg-violet-900/40">
-                  <Sparkles className="h-2.5 w-2.5" />
+              {/* STEP 1: PROJECT FIRST */}
+              <section className="mb-10">
+                <div className="mb-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="h-1.5 w-1.5 rounded-full bg-indigo-500" />
+                    <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-indigo-500">
+                      Step 1 · Choose project
+                    </span>
+                  </div>
+                  <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Which project is this for?</h3>
+                  <p className="mt-1 text-xs text-slate-400">
+                    Pick a project first so the task summary and brief stay aligned with the right context.
+                  </p>
                 </div>
-                <span>
-                  {aiMode === "enhanced" ? "Enhanced by AI — feel free to edit" : "Generated by AI — feel free to edit"}
-                </span>
+
+                <div className="rounded-[22px] border border-indigo-200 bg-indigo-50/40 p-4 dark:border-indigo-900/50 dark:bg-indigo-950/10">
+                  <div className="mb-4 flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-sm">
+                        <Folder className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold text-slate-900 dark:text-white">Project</p>
+                        <p className="text-[10px] text-indigo-500">Pick one or leave empty</p>
+                      </div>
+                    </div>
+                    {formData.project_id && (
+                      <span className="rounded-full bg-white px-2 py-1 text-[9px] font-bold uppercase tracking-wider text-indigo-500 shadow-sm dark:bg-slate-900">
+                        Selected
+                      </span>
+                    )}
+                  </div>
+
+                  <select
+                    value={formData.project_id}
+                    onChange={(e) => setFormData({ ...formData, project_id: e.target.value })}
+                    className="w-full rounded-xl border border-indigo-100 bg-white px-3 py-2.5 text-xs font-medium text-slate-900 outline-none transition focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/5 dark:border-indigo-900/60 dark:bg-slate-950 dark:text-white"
+                  >
+                    <option value="">No project (standalone task)</option>
+                    {projects.map((p) => (
+                      <option key={p.id} value={p.id}>{p.summary}</option>
+                    ))}
+                  </select>
+
+                  {selectedProject && (
+                    <div className="mt-3 flex items-center gap-2 rounded-xl border border-indigo-100 bg-white px-3 py-2 dark:border-indigo-900/40 dark:bg-slate-900">
+                      <div className="flex h-7 w-7 items-center justify-center rounded-full bg-indigo-100 text-[9px] font-bold text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-300">
+                        {initials(selectedProject.summary)}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-[11px] font-semibold text-slate-800 dark:text-slate-200">
+                          {selectedProject.summary}
+                        </p>
+                        <p className="text-[10px] text-slate-400">
+                          Task will be linked to this project
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </section>
+
+              {/* STEP 2: SUMMARY */}
+              <section className="mb-10">
+                <div className="mb-3 flex items-center gap-2">
+                  <span className="h-1.5 w-1.5 rounded-full bg-indigo-500" />
+                  <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-indigo-500">
+                    Step 2 · Task identity
+                  </span>
+                </div>
+                <div className="relative">
+                  {showSummaryLimitPopup && (
+                    <div role="alert" className="absolute bottom-full left-0 z-20 mb-3 flex items-center gap-2 rounded-xl bg-slate-900 px-3 py-2 text-[10px] font-medium text-white shadow-xl dark:bg-slate-700">
+                      <AlertCircle className="h-3.5 w-3.5 text-red-400" />
+                      Summary can't be more than {MAX_SUMMARY_LENGTH} characters
+                    </div>
+                  )}
+                  <input
+                    type="text" required
+                    value={formData.summary}
+                    onChange={handleSummaryChange}
+                    placeholder="Give your task a clear summary..."
+                    className={`w-full border-0 bg-transparent p-0 text-[18px] font-semibold tracking-[-0.045em] text-slate-950 outline-none placeholder:text-slate-300 focus:ring-0 dark:text-white dark:placeholder:text-slate-700 sm:text-[28px] ${showSummaryLimitPopup ? "text-red-600 dark:text-red-400" : ""}`}
+                  />
+                  <div className="mt-4 flex items-center justify-between border-b border-slate-200 pb-4 dark:border-slate-800">
+                    <p className="text-xs text-slate-400">
+                      {selectedProject
+                        ? `This task will be linked to "${selectedProject.summary}".`
+                        : "Keep it short and actionable so the team knows what to do."}
+                    </p>
+                    <span className={`text-[10px] font-medium tabular-nums ${formData.summary.length >= MAX_SUMMARY_LENGTH ? "text-red-500" : "text-slate-400"}`}>
+                      {formData.summary.length}/{MAX_SUMMARY_LENGTH}
+                    </span>
+                  </div>
+                </div>
+              </section>
+
+              {/* STEP 3: DESCRIPTION + AI */}
+              <section className="mb-10">
+                <div className="mb-4 flex items-end justify-between">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Task brief</h3>
+                      <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+                        Required
+                      </span>
+                    </div>
+                    <p className="mt-1 text-xs text-slate-400">
+                      {selectedProject
+                        ? `Explain what needs to be done for "${selectedProject.summary}".`
+                        : "Describe what needs to be done and expected outcome."}
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleAISuggest}
+                    disabled={aiLoading || !formData.summary.trim()}
+                    className="group relative inline-flex items-center gap-2 overflow-hidden rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-[11px] font-semibold text-indigo-700 transition-all hover:border-indigo-300 hover:bg-indigo-100 disabled:cursor-not-allowed disabled:opacity-40 dark:border-indigo-900/60 dark:bg-indigo-500/10 dark:text-indigo-300 dark:hover:bg-indigo-500/15"
+                  >
+                    <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/50 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
+                    {aiLoading ? (
+                      <Loader className="relative h-3.5 w-3.5 animate-spin" />
+                    ) : aiUsed ? (
+                      <RefreshCw className="relative h-3.5 w-3.5" />
+                    ) : hasDescription ? (
+                      <Wand2 className="relative h-3.5 w-3.5" />
+                    ) : (
+                      <Sparkles className="relative h-3.5 w-3.5" />
+                    )}
+                    <span className="relative">{aiLoading ? "Working..." : buttonLabel}</span>
+                  </button>
+                </div>
+
+                <div className={`relative overflow-hidden rounded-[22px] border transition-all ${
+                  aiLoading
+                    ? "border-indigo-300 bg-indigo-50/60 dark:border-indigo-700 dark:bg-indigo-950/20"
+                    : aiUsed
+                    ? "border-indigo-200 bg-indigo-50/40 dark:border-indigo-900/60 dark:bg-indigo-950/10"
+                    : "border-slate-200 bg-slate-50/60 dark:border-slate-800 dark:bg-slate-900/40"
+                }`}>
+                  <div className="pointer-events-none absolute right-0 top-0 h-40 w-40 rounded-full bg-indigo-500/5 blur-3xl" />
+                  <div className="relative p-4">
+                    <div className="mb-3 flex items-center gap-2">
+                      <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-white shadow-sm dark:bg-slate-800">
+                        <Sparkles className="h-3.5 w-3.5 text-indigo-500" />
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-indigo-500">AI Copilot</p>
+                        <p className="text-[10px] text-slate-400">
+                          {hasDescription ? "Improve your existing task brief" : "Turn your task idea into a clear brief"}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="relative">
+                      <textarea
+                        ref={descriptionRef}
+                        required
+                        value={formData.description}
+                        onChange={handleDescriptionChange}
+                        disabled={aiLoading}
+                        placeholder={
+                          formData.summary.trim()
+                            ? hasDescription ? "" : "Describe the goal, scope and expected outcome..."
+                            : "Start with a task summary..."
+                        }
+                        className="w-full resize-none overflow-hidden rounded-2xl border border-slate-200 bg-white px-4 py-3.5 text-sm leading-6 text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/5 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 dark:placeholder:text-slate-600 dark:focus:border-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
+                        style={{ minHeight: "140px" }}
+                      />
+                      {aiLoading && (
+                        <div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-white/70 backdrop-blur-sm dark:bg-slate-950/70">
+                          <div className="flex items-center gap-2 rounded-full border border-indigo-200 bg-white px-4 py-2 shadow-lg dark:border-indigo-800 dark:bg-slate-900">
+                            <Sparkles className="h-3.5 w-3.5 animate-pulse text-indigo-500" />
+                            <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-300">
+                              AI is {hasDescription ? "enhancing" : "writing"}...
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="mt-3 flex items-center justify-between">
+                      <div>
+                        {aiUsed && !aiLoading && !aiError ? (
+                          <div className="flex items-center gap-1.5 text-[10px] font-semibold text-indigo-600 dark:text-indigo-400">
+                            <CheckCircle2 className="h-3.5 w-3.5" />
+                            {aiMode === "enhanced" ? "Enhanced by AI" : "Generated by AI"}
+                            <span className="font-normal text-slate-400">· You can edit it</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1.5 text-[10px] text-slate-400">
+                            <Lightbulb className="h-3 w-3" />
+                            {selectedProject
+                              ? `Context: "${selectedProject.summary}" — AI will use this.`
+                              : "Clear context helps AI create better task details."}
+                          </div>
+                        )}
+                      </div>
+                      <span className="text-[10px] tabular-nums text-slate-400">{descriptionCharCount} characters</span>
+                    </div>
+
+                    {aiError && (
+                      <div className="mt-3 flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-[11px] text-red-600 dark:border-red-900/60 dark:bg-red-950/20 dark:text-red-400">
+                        <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                        {aiError}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </section>
+
+              {/* STEP 4: CONTROLS */}
+              <section className="mb-10">
+                <div className="mb-4">
+                  <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Task controls</h3>
+                  <p className="mt-1 text-xs text-slate-400">Set priority, status and timeline.</p>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="rounded-[20px] border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900/50">
+                    <div className="mb-3 flex items-center gap-2">
+                      <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-50 dark:bg-emerald-500/10">
+                        <CircleDot className="h-3.5 w-3.5 text-emerald-500" />
+                      </div>
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Status</span>
+                    </div>
+                    <select
+                      value={formData.status}
+                      onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                      className="w-full border-0 bg-transparent p-0 text-sm font-semibold text-slate-900 outline-none focus:ring-0 dark:text-white"
+                    >
+                      <option value="todo">To Do</option>
+                      <option value="in_progress">In Progress</option>
+                      <option value="done">Done</option>
+                    </select>
+                  </div>
+
+                  <div className="rounded-[20px] border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900/50">
+                    <div className="mb-3 flex items-center gap-2">
+                      <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-50 dark:bg-amber-500/10">
+                        <Flame className="h-3.5 w-3.5 text-amber-500" />
+                      </div>
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Priority</span>
+                    </div>
+                    <select
+                      value={formData.priority}
+                      onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
+                      className="w-full border-0 bg-transparent p-0 text-sm font-semibold text-slate-900 outline-none focus:ring-0 dark:text-white"
+                    >
+                      <option value="low">Low</option>
+                      <option value="medium">Medium</option>
+                      <option value="high">High</option>
+                      <option value="critical">Critical</option>
+                    </select>
+                  </div>
+
+                  <div className="rounded-[20px] border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900/50">
+                    <div className="mb-3 flex items-center gap-2">
+                      <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-50 dark:bg-blue-500/10">
+                        <Calendar className="h-3.5 w-3.5 text-blue-500" />
+                      </div>
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Start date</span>
+                    </div>
+                    <input
+                      type="date"
+                      value={formData.start_date}
+                      onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+                      className="w-full border-0 bg-transparent p-0 text-sm font-semibold text-slate-900 outline-none focus:ring-0 dark:text-white"
+                    />
+                  </div>
+
+                  <div className="rounded-[20px] border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900/50">
+                    <div className="mb-3 flex items-center gap-2">
+                      <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-50 dark:bg-blue-500/10">
+                        <Calendar className="h-3.5 w-3.5 text-blue-500" />
+                      </div>
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Due date</span>
+                    </div>
+                    <input
+                      type="date"
+                      value={formData.due_date}
+                      onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
+                      className="w-full border-0 bg-transparent p-0 text-sm font-semibold text-slate-900 outline-none focus:ring-0 dark:text-white"
+                    />
+                  </div>
+                </div>
+              </section>
+
+              {/* STEP 5: ASSIGNEE */}
+              <section className="mb-10">
+                <div className="mb-4">
+                  <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Assignee</h3>
+                  <p className="mt-1 text-xs text-slate-400">
+                    {selectedProject
+                      ? `Choose from "${selectedProject.summary}" members.`
+                      : "Select a project above to see its members."}
+                  </p>
+                </div>
+                <div className="rounded-[22px] border border-slate-200 bg-slate-50/50 p-4 dark:border-slate-800 dark:bg-slate-900/30">
+                  <div className="mb-4 flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-slate-500 shadow-sm dark:bg-slate-800">
+                        <User className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold text-slate-900 dark:text-white">Team member</p>
+                        <p className="text-[10px] text-slate-400">Assign owner</p>
+                      </div>
+                    </div>
+                  </div>
+                  <select
+                    value={formData.assigned_to}
+                    onChange={(e) => setFormData({ ...formData, assigned_to: e.target.value })}
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs text-slate-900 outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/5 dark:border-slate-800 dark:bg-slate-950 dark:text-white"
+                  >
+                    <option value="">Unassigned</option>
+                    {usersList.map((u) => (
+                      <option key={u.id} value={u.id}>{u.full_name || u.username}</option>
+                    ))}
+                  </select>
+                  {selectedAssignee && (
+                    <div className="mt-3 flex items-center gap-2">
+                      <div className={`flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br ${avatarColor(selectedAssignee.username || selectedAssignee.full_name)} text-[9px] font-bold text-white`}>
+                        {initials(selectedAssignee.full_name || selectedAssignee.username)}
+                      </div>
+                      <span className="truncate text-[10px] text-slate-500 dark:text-slate-400">
+                        {selectedAssignee.full_name || selectedAssignee.username}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </section>
+
+              {/* STEP 6: LABELS */}
+              <section className="mb-10">
+                <div className="mb-4">
+                  <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Labels</h3>
+                  <p className="mt-1 text-xs text-slate-400">Comma-separated tags to categorize this task.</p>
+                </div>
+                <div className="relative">
+                  <Tag className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="text"
+                    value={formData.labels}
+                    onChange={(e) => setFormData({ ...formData, labels: e.target.value })}
+                    placeholder="frontend, urgent, Q1..."
+                    className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-9 pr-3 text-xs text-slate-900 outline-none transition focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/5 dark:border-slate-800 dark:bg-slate-950 dark:text-white dark:placeholder:text-slate-600"
+                  />
+                </div>
+              </section>
+            </form>
+          </div>
+
+          {/* COMMAND BAR */}
+          <div className="shrink-0 border-t border-slate-200 bg-white/95 px-5 py-3 backdrop-blur-xl dark:border-slate-800 dark:bg-[#080d18]/95 sm:px-7">
+            <div className="flex items-center justify-between gap-4">
+              <div className="hidden items-center gap-2 sm:flex">
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-900">
+                  <Clock3 className="h-3.5 w-3.5 text-slate-400" />
+                </div>
+                <div>
+                  <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Task state</p>
+                  <p className="text-[10px] font-medium text-slate-600 dark:text-slate-300">{completion}% ready</p>
+                </div>
               </div>
-            )}
 
-            {aiError && (
-              <div className="mt-2 flex items-center gap-1.5 rounded-md bg-red-50 dark:bg-red-950/30 px-2.5 py-1.5 text-xs text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/60">
-                <AlertCircle className="h-3 w-3 flex-shrink-0" />
-                <span>{aiError}</span>
+              <div className="flex w-full items-center justify-end gap-2 sm:w-auto">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 hover:text-slate-900 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  form="task-form"
+                  disabled={modalLoading}
+                  className="group inline-flex items-center gap-2 rounded-xl bg-slate-950 px-5 py-2.5 text-xs font-semibold text-white shadow-lg shadow-slate-950/10 transition hover:bg-indigo-600 hover:shadow-indigo-600/20 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-indigo-600 dark:hover:bg-indigo-500"
+                >
+                  {modalLoading ? (
+                    <Loader className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <ArrowUpRight className="h-3.5 w-3.5 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+                  )}
+                  {modalLoading ? "Saving..." : isEditMode ? "Update task" : "Create task"}
+                </button>
               </div>
-            )}
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1.5">Project</label>
-              <select
-                value={formData.project_id}
-                onChange={(e) => setFormData({ ...formData, project_id: e.target.value })}
-                className="w-full rounded border border-[#C7D0E0] bg-white px-3 py-2.5 text-xs outline-none focus:border-[#0C66E4] dark:border-slate-700 dark:bg-slate-950"
-              >
-                <option value="">No project</option>
-                {projects.map((p) => <option key={p.id} value={p.id}>{p.summary}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1.5">Assignee</label>
-              <select
-                value={formData.assigned_to}
-                onChange={(e) => setFormData({ ...formData, assigned_to: e.target.value })}
-                className="w-full rounded border border-[#C7D0E0] bg-white px-3 py-2.5 text-xs outline-none focus:border-[#0C66E4] dark:border-slate-700 dark:bg-slate-950"
-              >
-                <option value="">Unassigned</option>
-                {usersList.map((u) => <option key={u.id} value={u.id}>{u.full_name || u.username}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1.5">Priority</label>
-              <select
-                value={formData.priority}
-                onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
-                className="w-full rounded border border-[#C7D0E0] bg-white px-3 py-2.5 text-xs outline-none focus:border-[#0C66E4] dark:border-slate-700 dark:bg-slate-950"
-              >
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
-                <option value="critical">Critical</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1.5">Status</label>
-              <select
-                value={formData.status}
-                onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                className="w-full rounded border border-[#C7D0E0] bg-white px-3 py-2.5 text-xs outline-none focus:border-[#0C66E4] dark:border-slate-700 dark:bg-slate-950"
-              >
-                <option value="todo">To Do</option>
-                <option value="in_progress">In Progress</option>
-                <option value="done">Done</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1.5">Start date</label>
-              <input type="date" value={formData.start_date}
-                onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
-                className="w-full rounded border border-[#C7D0E0] bg-white px-3 py-2.5 text-xs outline-none focus:border-[#0C66E4] dark:border-slate-700 dark:bg-slate-950" />
-            </div>
-            <div>
-              <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1.5">Due date</label>
-              <input type="date" value={formData.due_date}
-                onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
-                className="w-full rounded border border-[#C7D0E0] bg-white px-3 py-2.5 text-xs outline-none focus:border-[#0C66E4] dark:border-slate-700 dark:bg-slate-950" />
             </div>
           </div>
-
-          <div>
-            <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1.5">Labels</label>
-            <input
-              type="text"
-              value={formData.labels}
-              onChange={(e) => setFormData({ ...formData, labels: e.target.value })}
-              placeholder="Comma separated"
-              className="w-full rounded border border-[#C7D0E0] bg-white px-3 py-2.5 text-xs outline-none focus:border-[#0C66E4] dark:border-slate-700 dark:bg-slate-950"
-            />
-          </div>
-
-          <div className="flex justify-end gap-2 border-t border-[#D6DCE8] pt-4 dark:border-slate-800">
-            <button type="button" onClick={onClose}
-              className="rounded px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800">
-              Cancel
-            </button>
-            <button type="submit" disabled={modalLoading}
-              className="inline-flex items-center gap-2 rounded bg-[#0C66E4] px-5 py-2 text-xs font-semibold text-white hover:bg-[#0055CC] disabled:opacity-50">
-              {modalLoading && <Loader className="h-3.5 w-3.5 animate-spin" />}
-              {isEditMode ? "Save" : "Create"}
-            </button>
-          </div>
-        </form>
+        </div>
       </div>
     </div>
   );

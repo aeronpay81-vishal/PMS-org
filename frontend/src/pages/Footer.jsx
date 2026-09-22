@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { ArrowUpRight, Send, Code2, Briefcase } from "lucide-react";
 import BrandLogo from "../components/layout/BrandLogo";
-
+import Logo from "../../public/logo.png";
 const FOOTER_COLUMNS = [
   {
     title: "Product",
@@ -74,7 +74,7 @@ const Footer = () => (
     <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
       <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1fr]">
         <div>
-          <BrandLogo />
+          <img src={Logo} alt="Logo" className="h-14 w-auto" />
           <p className="mt-4 max-w-xs text-[13px] leading-6 text-[#626F86]">
             Work management software that helps teams plan, track, and deliver projects with clarity.
           </p>

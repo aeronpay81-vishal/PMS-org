@@ -14,12 +14,16 @@ import {
   Users,
   Plus,
   Trash2,
-  Copy,
-  Mail,
   Sparkles,
   RefreshCw,
   Wand2,
   Lightbulb,
+  ArrowUpRight,
+  CircleDot,
+  Clock3,
+  ShieldCheck,
+  Layers3,
+  Paperclip,
 } from "lucide-react";
 import { authAPI } from "../../api/admin";
 import { suggestProjectDescription } from "../../api/groqApi";
@@ -37,10 +41,10 @@ const emptyAssignment = () => ({
 });
 
 const PRIORITIES = [
-  { value: "low", label: "Low", dot: "bg-slate-400", ring: "ring-slate-300", text: "text-slate-700", bg: "bg-slate-50", border: "border-slate-300" },
-  { value: "medium", label: "Medium", dot: "bg-blue-500", ring: "ring-blue-300", text: "text-blue-700", bg: "bg-blue-50", border: "border-blue-300" },
-  { value: "high", label: "High", dot: "bg-amber-500", ring: "ring-amber-300", text: "text-amber-700", bg: "bg-amber-50", border: "border-amber-300" },
-  { value: "critical", label: "Critical", dot: "bg-red-500", ring: "ring-red-300", text: "text-red-700", bg: "bg-red-50", border: "border-red-300" },
+  { value: "low", label: "Low", dot: "bg-slate-400" },
+  { value: "medium", label: "Medium", dot: "bg-blue-500" },
+  { value: "high", label: "High", dot: "bg-amber-500" },
+  { value: "critical", label: "Critical", dot: "bg-red-500" },
 ];
 
 const STATUSES = [
@@ -98,18 +102,16 @@ const ProjectFormModal = ({ isOpen, isEditMode, editingProject, isManager = true
 
   const MAX_SUMMARY_LENGTH = 255;
 
-  // ✅ Auto-grow description textarea based on content
+  // ✅ Auto-grow description textarea
   const autoGrowDescription = () => {
     const el = descriptionRef.current;
     if (!el) return;
     el.style.height = "auto";
-    el.style.height = `${Math.max(112, el.scrollHeight)}px`; // min ~7 lines
+    el.style.height = `${Math.max(140, el.scrollHeight)}px`;
   };
 
   useEffect(() => {
-    if (isOpen) {
-      autoGrowDescription();
-    }
+    if (isOpen) autoGrowDescription();
   }, [isOpen, formData.description]);
 
   useEffect(() => {
@@ -140,8 +142,7 @@ const ProjectFormModal = ({ isOpen, isEditMode, editingProject, isManager = true
       const month = String(date.getMonth() + 1).padStart(2, "0");
       const day = String(date.getDate()).padStart(2, "0");
       return `${year}-${month}-${day}`;
-    } catch (error) {
-      console.error("Date parsing error:", error);
+    } catch {
       return "";
     }
   };
@@ -241,20 +242,14 @@ const ProjectFormModal = ({ isOpen, isEditMode, editingProject, isManager = true
 
   useEffect(() => {
     return () => {
-      if (popupTimeoutRef.current) {
-        clearTimeout(popupTimeoutRef.current);
-      }
+      if (popupTimeoutRef.current) clearTimeout(popupTimeoutRef.current);
     };
   }, []);
 
   const triggerSummaryLimitPopup = () => {
     setShowSummaryLimitPopup(true);
-    if (popupTimeoutRef.current) {
-      clearTimeout(popupTimeoutRef.current);
-    }
-    popupTimeoutRef.current = setTimeout(() => {
-      setShowSummaryLimitPopup(false);
-    }, 3000);
+    if (popupTimeoutRef.current) clearTimeout(popupTimeoutRef.current);
+    popupTimeoutRef.current = setTimeout(() => setShowSummaryLimitPopup(false), 3000);
   };
 
   const handleChange = (e) => {
@@ -262,31 +257,20 @@ const ProjectFormModal = ({ isOpen, isEditMode, editingProject, isManager = true
 
     if (name === "summary" && value.length > MAX_SUMMARY_LENGTH) {
       triggerSummaryLimitPopup();
-      setFormData((prev) => ({
-        ...prev,
-        summary: value.slice(0, MAX_SUMMARY_LENGTH),
-      }));
+      setFormData((prev) => ({ ...prev, summary: value.slice(0, MAX_SUMMARY_LENGTH) }));
       return;
     }
 
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
 
-    // Auto-grow when description changes
-    if (name === "description") {
-      setTimeout(autoGrowDescription, 0);
-    }
+    if (name === "description") setTimeout(autoGrowDescription, 0);
 
-    // Reset AI hint when user manually edits description
     if (name === "description" && aiUsed) {
       setAiUsed(false);
       setAiMode("");
     }
   };
 
-  // ✨ AI: Generate/Enhance description
   const handleAISuggestDescription = async () => {
     const projectName = formData.summary.trim();
     const existingDesc = formData.description.trim();
@@ -306,7 +290,6 @@ const ProjectFormModal = ({ isOpen, isEditMode, editingProject, isManager = true
         setFormData((prev) => ({ ...prev, description: result.description }));
         setAiUsed(true);
         setAiMode(result.mode || "generated");
-        // Auto-grow after AI inserts text
         setTimeout(autoGrowDescription, 50);
       } else {
         setAiError("AI returned an empty response. Try again.");
@@ -319,7 +302,6 @@ const ProjectFormModal = ({ isOpen, isEditMode, editingProject, isManager = true
     }
   };
 
-  // ---- Assignment row helpers ----
   const updateAssignment = (key, field, value) => {
     if (!canManageProject && field !== "status" && field !== "task_detail") return;
     setAssignments((prev) => prev.map((a) => (a._key === key ? { ...a, [field]: value } : a)));
@@ -362,29 +344,17 @@ const ProjectFormModal = ({ isOpen, isEditMode, editingProject, isManager = true
     return email;
   };
 
-  const assignedCounts = assignments.reduce((acc, a) => {
-    const email = normalizeEmail(a.assigned_email);
-    if (email) acc[email] = (acc[email] || 0) + 1;
-    return acc;
-  }, {});
-
   const handleAddLabel = () => {
     if (!canManageProject) return;
     if (labelInput.trim() && !formData.labels.includes(labelInput.trim())) {
-      setFormData((prev) => ({
-        ...prev,
-        labels: [...prev.labels, labelInput.trim()],
-      }));
+      setFormData((prev) => ({ ...prev, labels: [...prev.labels, labelInput.trim()] }));
       setLabelInput("");
     }
   };
 
   const handleRemoveLabel = (label) => {
     if (!canManageProject) return;
-    setFormData((prev) => ({
-      ...prev,
-      labels: prev.labels.filter((l) => l !== label),
-    }));
+    setFormData((prev) => ({ ...prev, labels: prev.labels.filter((l) => l !== label) }));
   };
 
   const handleFileChange = (e) => {
@@ -396,8 +366,7 @@ const ProjectFormModal = ({ isOpen, isEditMode, editingProject, isManager = true
         return;
       }
       const maxSizeInMB = 10;
-      const fileSizeInMB = file.size / (1024 * 1024);
-      if (fileSizeInMB > maxSizeInMB) {
+      if (file.size / (1024 * 1024) > maxSizeInMB) {
         setError(`File size must be less than ${maxSizeInMB}MB`);
         return;
       }
@@ -418,9 +387,7 @@ const ProjectFormModal = ({ isOpen, isEditMode, editingProject, isManager = true
     const normalizedMembers = memberEmails.map(normalizeEmail).filter(Boolean);
     if (normalizedMembers.some((email) => !EMAIL_RE.test(email))) return "Enter valid member email addresses";
     if (normalizedManager && normalizedMembers.includes(normalizedManager)) return "Manager cannot also be added as a member";
-    if (!formData.summary.trim()) {
-      return "Project name is required";
-    }
+    if (!formData.summary.trim()) return "Project name is required";
     if (formData.summary.trim().length > MAX_SUMMARY_LENGTH) {
       triggerSummaryLimitPopup();
       return `Project name cannot exceed ${MAX_SUMMARY_LENGTH} characters`;
@@ -447,24 +414,14 @@ const ProjectFormModal = ({ isOpen, isEditMode, editingProject, isManager = true
       if (normalizedManager) inviteRoles[normalizedManager] = "manager";
       normalizedMembers.forEach((email) => { inviteRoles[email] = "member"; });
 
-      const existingInvites = formData.invites
-        .split(",")
-        .map((e) => e.trim())
-        .filter(Boolean);
-
-      const mergedInvites = Array.from(new Set([
-        ...existingInvites,
-        ...Object.keys(inviteRoles),
-      ])).join(", ");
+      const existingInvites = formData.invites.split(",").map((e) => e.trim()).filter(Boolean);
+      const mergedInvites = Array.from(new Set([...existingInvites, ...Object.keys(inviteRoles)])).join(", ");
 
       let submitData;
       let useFormData = false;
 
       if (!canEditProject && isEditMode) {
-        await onSubmit({
-          description: formData.description.trim(),
-          status: formData.status,
-        }, false);
+        await onSubmit({ description: formData.description.trim(), status: formData.status }, false);
         return;
       }
 
@@ -498,7 +455,6 @@ const ProjectFormModal = ({ isOpen, isEditMode, editingProject, isManager = true
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : err?.message || "Failed to save project";
       setError(errorMessage);
-      console.error("Form submission error:", err);
     } finally {
       setLoading(false);
     }
@@ -506,506 +462,757 @@ const ProjectFormModal = ({ isOpen, isEditMode, editingProject, isManager = true
 
   if (!isOpen) return null;
 
-  const distinctUserCount = new Set(
-    assignments.map((a) => normalizeEmail(a.assigned_email)).filter(Boolean)
-  ).size;
-
+  const memberCount = memberEmails.filter(Boolean).length;
   const hasDescription = formData.description.trim().length > 0;
   const buttonLabel = hasDescription
     ? aiUsed ? "Regenerate" : "Enhance with AI"
     : "Generate with AI";
-
   const descriptionCharCount = formData.description.length;
+  const projectName = formData.summary.trim() || "Untitled project";
+
+  const progressItems = [
+    { label: "Identity", complete: Boolean(formData.summary.trim()) },
+    { label: "Description", complete: Boolean(formData.description.trim()) },
+    { label: "Team", complete: Boolean(managerEmail || memberCount) },
+    { label: "Timeline", complete: Boolean(formData.due_date) },
+  ];
+  const completedSteps = progressItems.filter((i) => i.complete).length;
+  const completion = Math.round((completedSteps / progressItems.length) * 100);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4">
-      <div className="w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl">
-        {/* Header */}
-        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-6 py-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-md bg-indigo-600">
-              <Briefcase className="h-4 w-4 text-white" />
-            </div>
-            <div>
-              <h2 className="text-base font-semibold text-slate-900 dark:text-white">
-                {isEditMode ? "Edit project" : "New project"}
-              </h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                {role === "owner"
-                  ? "Full control: edit the project, manage members, and assign work"
-                  : role === "manager" || role === "global_manager"
-                    ? "Coordinate assignments, timelines, and project delivery"
-                    : "Update your task status and details only"}
-              </p>
-            </div>
+    <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-hidden bg-slate-950/75 p-3 backdrop-blur-md sm:p-5">
+      <div className="relative flex h-[94vh] w-full max-w-[1220px] overflow-hidden rounded-[28px] border border-white/10 bg-white shadow-[0_40px_120px_rgba(15,23,42,0.35)] dark:border-slate-800 dark:bg-[#080d18]">
+
+        {/* LEFT PROJECT RAIL */}
+        <aside className="relative hidden w-[330px] shrink-0 overflow-hidden bg-[#0a1020] text-white lg:flex lg:flex-col">
+          <div className="pointer-events-none absolute inset-0 overflow-hidden">
+            <div className="absolute -left-24 -top-24 h-72 w-72 rounded-full bg-indigo-600/20 blur-3xl" />
+            <div className="absolute -bottom-20 -right-20 h-72 w-72 rounded-full bg-blue-500/10 blur-3xl" />
+            <div
+              className="absolute inset-0 opacity-[0.035]"
+              style={{
+                backgroundImage:
+                  "linear-gradient(rgba(255,255,255,.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.5) 1px, transparent 1px)",
+                backgroundSize: "28px 28px",
+              }}
+            />
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close"
-            className="rounded-md p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-300 transition-colors"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-8">
-          {error && (
-            <div className="flex gap-3 rounded-md bg-red-50 dark:bg-red-950/30 px-4 py-3 border border-red-200 dark:border-red-900">
-              <AlertCircle className="h-4 w-4 text-red-500 flex-shrink-0 mt-0.5" />
-              <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
-            </div>
-          )}
-
-          {/* Basic Information */}
-          <section className="space-y-4">
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-              Project details
-            </h3>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
-                Project name
-              </label>
-
-              <div className="relative">
-                {showSummaryLimitPopup && (
-                  <div
-                    role="alert"
-                    className="absolute bottom-full left-0 mb-2 z-10 flex items-center gap-2 rounded-md bg-slate-900 dark:bg-slate-700 px-3 py-1.5 text-xs font-medium text-white shadow-md"
-                  >
-                    <AlertCircle className="h-3.5 w-3.5 flex-shrink-0" />
-                    Project name can't be more than {MAX_SUMMARY_LENGTH} characters
-                  </div>
-                )}
-
-                <input
-                  type="text"
-                  name="summary"
-                  value={formData.summary}
-                  onChange={handleChange}
-                  disabled={!canEditProject}
-                  placeholder="Website redesign, Mobile app v2..."
-                  className={`w-full px-3 py-2 rounded-md border text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 bg-white dark:bg-slate-950 focus:outline-none focus:ring-2 transition-shadow disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed dark:disabled:bg-slate-900 dark:disabled:text-slate-500 ${showSummaryLimitPopup
-                    ? "border-red-400 focus:ring-red-200 dark:border-red-800"
-                    : "border-slate-300 dark:border-slate-700 focus:ring-indigo-200 dark:focus:ring-indigo-900/50 focus:border-indigo-500"
-                    }`}
-                />
-              </div>
-
-              <p className="text-xs mt-1.5 text-slate-400 dark:text-slate-500">
-                {formData.summary.length}/{MAX_SUMMARY_LENGTH}
-              </p>
-            </div>
-
-            {/* ✨ DESCRIPTION with premium AI UI + auto-grow */}
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-                  Description
-                  <span className="text-xs text-slate-400 dark:text-slate-500 font-normal ml-1.5">Optional</span>
-                </label>
-
-                {canEditProject && (
-                  <button
-                    type="button"
-                    onClick={handleAISuggestDescription}
-                    disabled={aiLoading || !formData.summary.trim()}
-                    className="group relative inline-flex items-center gap-1.5 overflow-hidden rounded-full bg-gradient-to-r from-violet-500 via-indigo-500 to-blue-500 px-3 py-1.5 text-xs font-semibold text-white shadow-md shadow-violet-500/20 transition-all hover:shadow-lg hover:shadow-violet-500/40 hover:scale-[1.03] active:scale-[0.98] disabled:from-slate-300 disabled:via-slate-300 disabled:to-slate-400 disabled:cursor-not-allowed disabled:shadow-none disabled:hover:scale-100 dark:disabled:from-slate-700 dark:disabled:via-slate-700 dark:disabled:to-slate-800"
-                    title={!formData.summary.trim() ? "Enter a project name first" : buttonLabel}
-                  >
-                    {!aiLoading && formData.summary.trim() && (
-                      <span className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/30 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
-                    )}
-
-                    {aiLoading ? (
-                      <>
-                        <Loader2 className="h-3 w-3 animate-spin" />
-                        <span>Generating...</span>
-                      </>
-                    ) : aiUsed ? (
-                      <>
-                        <RefreshCw className="h-3 w-3" />
-                        <span>Regenerate</span>
-                      </>
-                    ) : hasDescription ? (
-                      <>
-                        <Wand2 className="h-3 w-3" />
-                        <span>Enhance with AI</span>
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="h-3 w-3" />
-                        <span>Generate with AI</span>
-                      </>
-                    )}
-                  </button>
-                )}
-              </div>
-
-              <p className="mb-2 text-[11px] text-slate-400 dark:text-slate-500 flex items-center gap-1">
-                <Lightbulb className="h-3 w-3" />
-                {hasDescription
-                  ? "AI will enhance your existing description — or write fresh if it's too short."
-                  : "Write your own, or let AI generate a professional description from the project name."}
-              </p>
-
-              <div className="relative">
-                <div
-                  className={`rounded-lg p-[1.5px] transition-all duration-300 ${
-                    aiLoading
-                      ? "bg-gradient-to-r from-violet-400 via-indigo-400 to-blue-400 animate-pulse"
-                      : aiUsed
-                      ? "bg-gradient-to-r from-violet-300 to-indigo-300 dark:from-violet-800 dark:to-indigo-800"
-                      : "bg-transparent"
-                  }`}
-                >
-                  <textarea
-                    ref={descriptionRef}
-                    name="description"
-                    value={formData.description}
-                    onChange={handleChange}
-                    disabled={!canEditProject || aiLoading}
-                    placeholder={
-                      formData.summary.trim()
-                        ? hasDescription
-                          ? ""
-                          : "Click 'Generate with AI' to auto-write, or type your own..."
-                        : "Enter a project name first, then let AI write it for you..."
-                    }
-                    rows="4"
-                    className={`w-full px-3 py-2.5 rounded-md border text-sm leading-relaxed text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-950 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 transition-all resize-none overflow-hidden disabled:cursor-not-allowed ${
-                      aiLoading
-                        ? "border-violet-300 dark:border-violet-700 focus:ring-violet-200 dark:focus:ring-violet-900/50 opacity-70"
-                        : aiUsed
-                        ? "border-violet-200 dark:border-violet-900 focus:ring-violet-200 dark:focus:ring-violet-900/50 focus:border-violet-500"
-                        : "border-slate-300 dark:border-slate-700 focus:ring-indigo-200 dark:focus:ring-indigo-900/50 focus:border-indigo-500"
-                    } disabled:bg-slate-100 disabled:text-slate-500 dark:disabled:bg-slate-900 dark:disabled:text-slate-500`}
-                    style={{ minHeight: "112px", height: "auto" }}
-                  />
+          <div className="relative flex h-full flex-col p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-500/15 ring-1 ring-indigo-400/20">
+                  <Layers3 className="h-4 w-4 text-indigo-300" />
                 </div>
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-indigo-300/80">Workspace</p>
+                  <p className="text-sm font-semibold text-white">Project Studio</p>
+                </div>
+              </div>
+              <div className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[10px] font-medium text-slate-400">
+                {isEditMode ? "EDIT" : "NEW"}
+              </div>
+            </div>
 
-                {aiLoading && (
-                  <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-md bg-white/60 dark:bg-slate-950/60 backdrop-blur-[1px]">
-                    <div className="flex items-center gap-2 rounded-full bg-gradient-to-r from-violet-50 to-indigo-50 dark:from-violet-950/60 dark:to-indigo-950/60 px-3.5 py-2 shadow-sm border border-violet-200 dark:border-violet-800">
-                      <Sparkles className="h-3.5 w-3.5 text-violet-600 dark:text-violet-400 animate-pulse" />
-                      <span className="text-xs font-medium text-violet-700 dark:text-violet-300">
-                        AI is {hasDescription ? "enhancing" : "writing"}...
+            <div className="mt-10">
+              <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">
+                Project identity
+              </p>
+              <div className="relative overflow-hidden rounded-[22px] border border-white/10 bg-white/[0.045] p-5">
+                <div className="absolute right-0 top-0 h-24 w-24 rounded-full bg-indigo-500/10 blur-2xl" />
+                <div className="relative">
+                  <div className="mb-5 flex items-center justify-between">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-blue-500 shadow-lg shadow-indigo-900/30">
+                      <Briefcase className="h-5 w-5 text-white" />
+                    </div>
+                    <div className="flex items-center gap-1.5 rounded-full border border-emerald-400/10 bg-emerald-400/10 px-2.5 py-1">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                      <span className="text-[10px] font-semibold text-emerald-300">
+                        {formData.status.replace("_", " ").replace(/\b\w/g, (c) => c.toUpperCase())}
                       </span>
                     </div>
                   </div>
-                )}
-              </div>
-
-              {/* Character counter + AI success badge row */}
-              <div className="mt-2 flex items-center justify-between min-h-[20px]">
-                {aiUsed && !aiLoading && !aiError ? (
-                  <div className="flex items-center gap-1.5 text-xs font-medium text-violet-600 dark:text-violet-400">
-                    <div className="flex h-4 w-4 items-center justify-center rounded-full bg-violet-100 dark:bg-violet-900/40">
-                      <Sparkles className="h-2.5 w-2.5" />
-                    </div>
-                    <span>
-                      {aiMode === "enhanced"
-                        ? "Enhanced by AI — feel free to edit"
-                        : "Generated by AI — feel free to edit"}
-                    </span>
-                  </div>
-                ) : (
-                  <span />
-                )}
-                <span className="text-[11px] text-slate-400 dark:text-slate-500 tabular-nums">
-                  {descriptionCharCount} characters
-                </span>
-              </div>
-
-              {aiError && (
-                <div className="mt-1 flex items-center gap-1.5 rounded-md bg-red-50 dark:bg-red-950/30 px-2.5 py-1.5 text-xs text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/60">
-                  <AlertCircle className="h-3 w-3 flex-shrink-0" />
-                  <span>{aiError}</span>
+                  <h3 className="break-words text-[12px] font-semibold leading-[1.1] tracking-[-0.035em] text-white">
+                    {projectName}
+                  </h3>
+                  <p className="mt-3 line-clamp-4 text-xs leading-5 text-slate-400">
+                    {formData.description.trim() || "Your project story will appear here as you build it."}
+                  </p>
                 </div>
-              )}
+              </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
-                Project status
-              </label>
-              <select
-                name="status"
-                value={formData.status}
-                onChange={handleChange}
-                disabled={!canEditProject}
-                className="w-full px-3 py-2 rounded-md border border-slate-300 dark:border-slate-700 text-sm text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-950 focus:outline-none focus:ring-2 focus:ring-indigo-200 dark:focus:ring-indigo-900/50 focus:border-indigo-500 transition-shadow disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
-              >
-                <option value="active">Active</option>
-                <option value="open">Open</option>
-                <option value="in_progress">In progress</option>
-                <option value="review">Review</option>
-                <option value="on_hold">On hold</option>
-                <option value="completed">Completed</option>
-                <option value="closed">Closed</option>
-                <option value="cancelled">Cancelled</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
-                Reporter
-                <span className="text-xs text-slate-400 dark:text-slate-500 font-normal ml-1.5">
-                  Defaults to your account
-                </span>
-              </label>
-              <input
-                type="text"
-                name="reporter"
-                value={formData.reporter}
-                onChange={handleChange}
-                disabled={!canManageProject}
-                placeholder="Project manager name"
-                className="w-full px-3 py-2 rounded-md border border-slate-300 dark:border-slate-700 text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 bg-white dark:bg-slate-950 focus:outline-none focus:ring-2 focus:ring-indigo-200 dark:focus:ring-indigo-900/50 focus:border-indigo-500 transition-shadow disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed dark:disabled:bg-slate-900 dark:disabled:text-slate-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
-                Project deadline
-              </label>
-              <input
-                type="date"
-                name="due_date"
-                value={formData.due_date}
-                onChange={handleChange}
-                disabled={!canManageProject}
-                className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 disabled:bg-slate-100 disabled:text-slate-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
-              />
-            </div>
-          </section>
-
-          {/* Project team */}
-          {!isEditMode && canManageMembers && (
-            <section className="space-y-4">
-              <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                Project team
-              </h3>
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                  Project manager (one only)
-                </label>
-                <input
-                  type="email"
-                  list="known-user-emails"
-                  value={managerEmail}
-                  onChange={(e) => setManagerEmail(e.target.value)}
-                  placeholder="manager@example.com"
-                  className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+            <div className="mt-7">
+              <div className="mb-3 flex items-center justify-between">
+                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">Project pulse</p>
+                <span className="text-[11px] font-semibold text-indigo-300">{completion}%</span>
+              </div>
+              <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-blue-400 transition-all duration-500"
+                  style={{ width: `${completion}%` }}
                 />
               </div>
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                  Project members
-                </label>
-                <div className="space-y-2">
-                  {memberEmails.map((email, index) => (
-                    <div key={`member-${index}`} className="flex gap-2">
-                      <input
-                        type="email"
-                        list="known-user-emails"
-                        value={email}
-                        onChange={(e) => setMemberEmails((previous) => previous.map((item, itemIndex) => itemIndex === index ? e.target.value : item))}
-                        placeholder="member@example.com"
-                        className="min-w-0 flex-1 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
-                      />
-                      {memberEmails.length > 1 && (
-                        <button type="button" onClick={() => setMemberEmails((previous) => previous.filter((_, itemIndex) => itemIndex !== index))} aria-label="Remove member" className="rounded-md px-3 text-slate-500 hover:bg-red-50 hover:text-red-600">
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-                <button type="button" onClick={() => setMemberEmails((previous) => [...previous, ""])} className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-indigo-600 hover:text-indigo-700">
-                  <Plus className="h-3.5 w-3.5" /> Add another member
-                </button>
-              </div>
-            </section>
-          )}
-
-          {/* Legacy task rows — hidden */}
-          {false ? <section /> : null}
-
-          {/* File Attachment */}
-          <section className="space-y-4">
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-              Attachment
-            </h3>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
-                PDF file
-                <span className="text-xs text-slate-400 dark:text-slate-500 font-normal ml-1.5">Max 10MB</span>
-              </label>
-
-              {formData.attachment ? (
-                <div className="flex items-center justify-between p-3 rounded-md bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-md bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
-                      <FileText className="h-4 w-4 text-slate-500" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-slate-900 dark:text-white">{formData.attachment.name}</p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">
-                        {(formData.attachment.size / 1024).toFixed(2)} KB
-                      </p>
-                    </div>
-                  </div>
-                  {canManageProject && (
-                    <button
-                      type="button"
-                      onClick={handleRemoveFile}
-                      aria-label="Remove file"
-                      className="rounded-md p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40 dark:hover:text-red-400 transition-colors"
+              <div className="mt-4 space-y-2.5">
+                {progressItems.map((item) => (
+                  <div key={item.label} className="flex items-center gap-3">
+                    <div
+                      className={`flex h-5 w-5 items-center justify-center rounded-full border ${
+                        item.complete
+                          ? "border-indigo-400/40 bg-indigo-500/20 text-indigo-300"
+                          : "border-white/10 bg-white/[0.03] text-slate-600"
+                      }`}
                     >
-                      <X className="h-4 w-4" />
-                    </button>
-                  )}
-                </div>
-              ) : existingAttachment && isEditMode ? (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between p-3 rounded-md bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-md bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
-                        <FileText className="h-4 w-4 text-slate-500" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-slate-900 dark:text-white">{existingAttachment}</p>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">Uploaded file</p>
-                      </div>
+                      {item.complete ? <CheckCircle2 className="h-3 w-3" /> : <CircleDot className="h-3 w-3" />}
                     </div>
-                    <div className="flex gap-1">
-                      <a href={`/uploads/projects/${existingAttachment}`} target="_blank" rel="noopener noreferrer" className="rounded-md p-1.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700 dark:hover:bg-slate-700 dark:hover:text-slate-200 transition-colors" title="View file">
-                        <Eye className="h-4 w-4" />
-                      </a>
-                      <a href={`/uploads/projects/${existingAttachment}`} download className="rounded-md p-1.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700 dark:hover:bg-slate-700 dark:hover:text-slate-200 transition-colors" title="Download file">
-                        <Download className="h-4 w-4" />
-                      </a>
-                    </div>
-                  </div>
-
-                  {canManageProject && (
-                    <details className="group">
-                      <summary className="cursor-pointer text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 font-medium">
-                        Replace with new file
-                      </summary>
-                      <div className="mt-2">
-                        <label className="flex flex-col items-center justify-center w-full px-4 py-5 rounded-md border border-dashed border-slate-300 dark:border-slate-700 cursor-pointer hover:border-indigo-400 dark:hover:border-indigo-600 hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors">
-                          <Upload className="h-4 w-4 text-slate-400 mb-1.5" />
-                          <p className="text-xs font-medium text-slate-600 dark:text-slate-400">
-                            Drop a new PDF or click to browse
-                          </p>
-                          <input type="file" accept=".pdf" onChange={handleFileChange} className="hidden" />
-                        </label>
-                      </div>
-                    </details>
-                  )}
-                </div>
-              ) : canManageProject ? (
-                <label className="flex flex-col items-center justify-center w-full px-4 py-8 rounded-md border border-dashed border-slate-300 dark:border-slate-700 cursor-pointer hover:border-indigo-400 dark:hover:border-indigo-600 hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors">
-                  <Upload className="h-5 w-5 text-slate-400 mb-2" />
-                  <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                    Drop your PDF here or click to browse
-                  </p>
-                  <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">PDF files up to 10MB</p>
-                  <input type="file" accept=".pdf" onChange={handleFileChange} className="hidden" />
-                </label>
-              ) : (
-                <p className="text-xs text-slate-400 dark:text-slate-500 italic">No attachment</p>
-              )}
-            </div>
-          </section>
-
-          {/* Labels */}
-          <section className="space-y-4">
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-              Labels
-            </h3>
-
-            <div>
-              {canManageProject && (
-                <div className="flex gap-2 mb-2">
-                  <input
-                    type="text"
-                    value={labelInput}
-                    onChange={(e) => setLabelInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        handleAddLabel();
-                      }
-                    }}
-                    placeholder="frontend, urgent, Q1-2024..."
-                    className="flex-1 px-3 py-2 rounded-md border border-slate-300 dark:border-slate-700 text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 bg-white dark:bg-slate-950 focus:outline-none focus:ring-2 focus:ring-indigo-200 dark:focus:ring-indigo-900/50 focus:border-indigo-500 transition-shadow"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleAddLabel}
-                    className="px-4 py-2 rounded-md border border-slate-300 dark:border-slate-700 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-                  >
-                    Add
-                  </button>
-                </div>
-              )}
-
-              {formData.labels.length > 0 && (
-                <div className="flex flex-wrap gap-1.5">
-                  {formData.labels.map((label) => (
-                    <span
-                      key={label}
-                      className="inline-flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 rounded-full pl-2.5 pr-1.5 py-1 text-xs font-medium text-slate-700 dark:text-slate-300"
-                    >
-                      {label}
-                      {canManageProject && (
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveLabel(label)}
-                          aria-label={`Remove ${label}`}
-                          className="rounded-full p-0.5 hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      )}
+                    <span className={`text-xs ${item.complete ? "text-slate-200" : "text-slate-500"}`}>
+                      {item.label}
                     </span>
-                  ))}
-                </div>
-              )}
+                  </div>
+                ))}
+              </div>
             </div>
-          </section>
 
-          {/* Action Buttons */}
-          <div className="flex justify-end gap-2 border-t border-slate-200 dark:border-slate-800 pt-5 sticky bottom-0 bg-white dark:bg-slate-900">
+            <div className="mt-auto grid grid-cols-2 gap-2">
+              <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-3">
+                <div className="mb-2 flex h-7 w-7 items-center justify-center rounded-lg bg-white/5">
+                  <Users className="h-3.5 w-3.5 text-slate-400" />
+                </div>
+                <p className="text-lg font-semibold text-white">{memberCount}</p>
+                <p className="text-[10px] text-slate-500">Team members</p>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-3">
+                <div className="mb-2 flex h-7 w-7 items-center justify-center rounded-lg bg-white/5">
+                  <Tag className="h-3.5 w-3.5 text-slate-400" />
+                </div>
+                <p className="text-lg font-semibold text-white">{formData.labels.length}</p>
+                <p className="text-[10px] text-slate-500">Labels</p>
+              </div>
+            </div>
+          </div>
+        </aside>
+
+        {/* MAIN EDITOR */}
+        <div className="flex min-w-0 flex-1 flex-col">
+          <div className="flex shrink-0 items-center justify-between border-b border-slate-200/80 bg-white/90 px-5 py-4 backdrop-blur-xl dark:border-slate-800 dark:bg-[#080d18]/90 sm:px-7">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-50 dark:bg-indigo-500/10">
+                <Sparkles className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+              </div>
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">
+                  {isEditMode ? "Project workspace" : "Create workspace"}
+                </p>
+                <h2 className="text-sm font-semibold text-slate-900 dark:text-white">
+                  {isEditMode ? "Shape your project" : "Build something meaningful"}
+                </h2>
+              </div>
+            </div>
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-md border border-slate-300 dark:border-slate-700 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+              aria-label="Close"
+              className="group flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-400 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-slate-800 dark:hover:text-slate-200"
             >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex items-center gap-2 px-4 py-2 rounded-md bg-indigo-600 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-              {loading
-                ? "Saving..."
-                : canManageProject
-                  ? isEditMode
-                    ? "Update project"
-                    : `Create project`
-                  : "Save changes"}
+              <X className="h-4 w-4 transition-transform group-hover:rotate-90" />
             </button>
           </div>
-        </form>
+
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            <form
+              id="project-form"
+              onSubmit={handleSubmit}
+              className="mx-auto w-full max-w-[900px] px-5 py-8 pb-32 sm:px-8 lg:px-10"
+            >
+              {error && (
+                <div className="mb-7 flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3.5 dark:border-red-900/60 dark:bg-red-950/20">
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-red-100 dark:bg-red-900/30">
+                    <AlertCircle className="h-3.5 w-3.5 text-red-600 dark:text-red-400" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-red-700 dark:text-red-300">
+                      Something needs your attention
+                    </p>
+                    <p className="mt-0.5 text-xs leading-5 text-red-600 dark:text-red-400">{error}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* PROJECT NAME */}
+              <section className="mb-10">
+                <div className="mb-3 flex items-center gap-2">
+                  <span className="h-1.5 w-1.5 rounded-full bg-indigo-500" />
+                  <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-indigo-500">
+                    Project identity
+                  </span>
+                </div>
+                <div className="relative">
+                  {showSummaryLimitPopup && (
+                    <div
+                      role="alert"
+                      className="absolute bottom-full left-0 z-20 mb-3 flex items-center gap-2 rounded-xl bg-slate-900 px-3 py-2 text-[10px] font-medium text-white shadow-xl dark:bg-slate-700"
+                    >
+                      <AlertCircle className="h-3.5 w-3.5 text-red-400" />
+                      Project name can't be more than {MAX_SUMMARY_LENGTH} characters
+                    </div>
+                  )}
+                  <input
+                    type="text"
+                    name="summary"
+                    value={formData.summary}
+                    onChange={handleChange}
+                    disabled={!canEditProject}
+                    placeholder="Give your project a name..."
+                    className={`w-full border-0 bg-transparent p-0 text-[18px] font-semibold tracking-[-0.045em] text-slate-950 outline-none placeholder:text-slate-300 focus:ring-0 dark:text-white dark:placeholder:text-slate-700 sm:text-[32px] ${
+                      showSummaryLimitPopup ? "text-red-600 dark:text-red-400" : ""
+                    } disabled:cursor-not-allowed disabled:opacity-50`}
+                  />
+                  <div className="mt-4 flex items-center justify-between border-b border-slate-200 pb-4 dark:border-slate-800">
+                    <p className="text-xs text-slate-400">
+                      Keep it clear, memorable and easy for the team to recognize.
+                    </p>
+                    <span
+                      className={`text-[10px] font-medium tabular-nums ${
+                        formData.summary.length >= MAX_SUMMARY_LENGTH ? "text-red-500" : "text-slate-400"
+                      }`}
+                    >
+                      {formData.summary.length}/{MAX_SUMMARY_LENGTH}
+                    </span>
+                  </div>
+                </div>
+              </section>
+
+              {/* PROJECT DESCRIPTION + AI */}
+              <section className="mb-10">
+                <div className="mb-4 flex items-end justify-between">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Project story</h3>
+                      <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+                        Optional
+                      </span>
+                    </div>
+                    <p className="mt-1 text-xs text-slate-400">
+                      Explain what this project is trying to achieve.
+                    </p>
+                  </div>
+
+                  {canEditProject && (
+                    <button
+                      type="button"
+                      onClick={handleAISuggestDescription}
+                      disabled={aiLoading || !formData.summary.trim()}
+                      className="group relative inline-flex items-center gap-2 overflow-hidden rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-[11px] font-semibold text-indigo-700 transition-all hover:border-indigo-300 hover:bg-indigo-100 disabled:cursor-not-allowed disabled:opacity-40 dark:border-indigo-900/60 dark:bg-indigo-500/10 dark:text-indigo-300 dark:hover:bg-indigo-500/15"
+                    >
+                      <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/50 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
+                      {aiLoading ? (
+                        <Loader2 className="relative h-3.5 w-3.5 animate-spin" />
+                      ) : aiUsed ? (
+                        <RefreshCw className="relative h-3.5 w-3.5" />
+                      ) : hasDescription ? (
+                        <Wand2 className="relative h-3.5 w-3.5" />
+                      ) : (
+                        <Sparkles className="relative h-3.5 w-3.5" />
+                      )}
+                      <span className="relative">{aiLoading ? "Working..." : buttonLabel}</span>
+                    </button>
+                  )}
+                </div>
+
+                <div
+                  className={`relative overflow-hidden rounded-[22px] border transition-all ${
+                    aiLoading
+                      ? "border-indigo-300 bg-indigo-50/60 dark:border-indigo-700 dark:bg-indigo-950/20"
+                      : aiUsed
+                      ? "border-indigo-200 bg-indigo-50/40 dark:border-indigo-900/60 dark:bg-indigo-950/10"
+                      : "border-slate-200 bg-slate-50/60 dark:border-slate-800 dark:bg-slate-900/40"
+                  }`}
+                >
+                  <div className="pointer-events-none absolute right-0 top-0 h-40 w-40 rounded-full bg-indigo-500/5 blur-3xl" />
+                  <div className="relative p-4">
+                    <div className="mb-3 flex items-center gap-2">
+                      <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-white shadow-sm dark:bg-slate-800">
+                        <Sparkles className="h-3.5 w-3.5 text-indigo-500" />
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-indigo-500">
+                          AI Copilot
+                        </p>
+                        <p className="text-[10px] text-slate-400">
+                          {hasDescription
+                            ? "Improve your existing project story"
+                            : "Turn your project idea into a clear brief"}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="relative">
+                      <textarea
+                        ref={descriptionRef}
+                        name="description"
+                        value={formData.description}
+                        onChange={handleChange}
+                        disabled={!canEditProject || aiLoading}
+                        placeholder={
+                          formData.summary.trim()
+                            ? hasDescription
+                              ? ""
+                              : "Describe the goal, scope and expected outcome..."
+                            : "Start with a project name..."
+                        }
+                        rows={5}
+                        className="w-full resize-none overflow-hidden rounded-2xl border border-slate-200 bg-white px-4 py-3.5 text-sm leading-6 text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/5 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 dark:placeholder:text-slate-600 dark:focus:border-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
+                        style={{ minHeight: "150px" }}
+                      />
+                      {aiLoading && (
+                        <div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-white/70 backdrop-blur-sm dark:bg-slate-950/70">
+                          <div className="flex items-center gap-2 rounded-full border border-indigo-200 bg-white px-4 py-2 shadow-lg dark:border-indigo-800 dark:bg-slate-900">
+                            <Sparkles className="h-3.5 w-3.5 animate-pulse text-indigo-500" />
+                            <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-300">
+                              AI is {hasDescription ? "enhancing" : "writing"}...
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="mt-3 flex items-center justify-between">
+                      <div>
+                        {aiUsed && !aiLoading && !aiError ? (
+                          <div className="flex items-center gap-1.5 text-[10px] font-semibold text-indigo-600 dark:text-indigo-400">
+                            <CheckCircle2 className="h-3.5 w-3.5" />
+                            {aiMode === "enhanced" ? "Enhanced by AI" : "Generated by AI"}
+                            <span className="font-normal text-slate-400">· You can edit it</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1.5 text-[10px] text-slate-400">
+                            <Lightbulb className="h-3 w-3" />
+                            Clear context helps AI create better project details.
+                          </div>
+                        )}
+                      </div>
+                      <span className="text-[10px] tabular-nums text-slate-400">
+                        {descriptionCharCount} characters
+                      </span>
+                    </div>
+
+                    {aiError && (
+                      <div className="mt-3 flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-[11px] text-red-600 dark:border-red-900/60 dark:bg-red-950/20 dark:text-red-400">
+                        <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                        {aiError}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </section>
+
+              {/* CONTROL STRIP */}
+              <section className="mb-10">
+                <div className="mb-4">
+                  <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Project controls</h3>
+                  <p className="mt-1 text-xs text-slate-400">
+                    Set the basic operating context for your team.
+                  </p>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <div className="rounded-[20px] border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900/50">
+                    <div className="mb-3 flex items-center gap-2">
+                      <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-50 dark:bg-emerald-500/10">
+                        <CircleDot className="h-3.5 w-3.5 text-emerald-500" />
+                      </div>
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Status</span>
+                    </div>
+                    <select
+                      name="status"
+                      value={formData.status}
+                      onChange={handleChange}
+                      disabled={!canEditProject}
+                      className="w-full border-0 bg-transparent p-0 text-sm font-semibold text-slate-900 outline-none focus:ring-0 dark:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {STATUSES.map((s) => (
+                        <option key={s.value} value={s.value}>{s.label}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="rounded-[20px] border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900/50">
+                    <div className="mb-3 flex items-center gap-2">
+                      <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-50 dark:bg-blue-500/10">
+                        <Calendar className="h-3.5 w-3.5 text-blue-500" />
+                      </div>
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Deadline</span>
+                    </div>
+                    <input
+                      type="date"
+                      name="due_date"
+                      value={formData.due_date}
+                      onChange={handleChange}
+                      disabled={!canManageProject}
+                      className="w-full border-0 bg-transparent p-0 text-sm font-semibold text-slate-900 outline-none focus:ring-0 dark:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                    />
+                  </div>
+
+                  <div className="rounded-[20px] border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900/50">
+                    <div className="mb-3 flex items-center gap-2">
+                      <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800">
+                        <ShieldCheck className="h-3.5 w-3.5 text-slate-500" />
+                      </div>
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Reporter</span>
+                    </div>
+                    <input
+                      type="text"
+                      name="reporter"
+                      value={formData.reporter}
+                      onChange={handleChange}
+                      disabled={!canManageProject}
+                      placeholder="Your name"
+                      className="w-full border-0 bg-transparent p-0 text-sm font-semibold text-slate-900 outline-none placeholder:text-slate-300 focus:ring-0 dark:text-white dark:placeholder:text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+                    />
+                  </div>
+                </div>
+              </section>
+
+              {/* TEAM WORKSPACE */}
+              {!isEditMode && canManageMembers && (
+                <section className="mb-10">
+                  <div className="mb-4 flex items-end justify-between">
+                    <div>
+                      <h3 className="text-sm font-semibold text-slate-900 dark:text-white">People workspace</h3>
+                      <p className="mt-1 text-xs text-slate-400">Bring the right people into this project.</p>
+                    </div>
+                    {loadingUsers && (
+                      <div className="flex items-center gap-1.5 text-[10px] text-slate-400">
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                        Loading users
+                      </div>
+                    )}
+                  </div>
+
+                  <datalist id="known-user-emails">
+                    {usersList.map((user) => (
+                      <option key={user.id || user.email} value={user.email}>
+                        {user.name || user.full_name || ""}
+                      </option>
+                    ))}
+                  </datalist>
+
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <div className="rounded-[22px] border border-indigo-200 bg-indigo-50/40 p-4 dark:border-indigo-900/50 dark:bg-indigo-950/10">
+                      <div className="mb-4 flex items-center justify-between">
+                        <div className="flex items-center gap-2.5">
+                          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-sm">
+                            <ShieldCheck className="h-4 w-4" />
+                          </div>
+                          <div>
+                            <p className="text-xs font-semibold text-slate-900 dark:text-white">Project manager</p>
+                            <p className="text-[10px] text-indigo-500">One owner</p>
+                          </div>
+                        </div>
+                        <span className="rounded-full bg-white px-2 py-1 text-[9px] font-bold uppercase tracking-wider text-indigo-500 shadow-sm dark:bg-slate-900">
+                          Required
+                        </span>
+                      </div>
+                      <input
+                        type="email"
+                        list="known-user-emails"
+                        value={managerEmail}
+                        onChange={(e) => setManagerEmail(e.target.value)}
+                        placeholder="manager@example.com"
+                        className="w-full rounded-xl border border-indigo-100 bg-white px-3 py-2.5 text-xs text-slate-900 outline-none transition focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/5 dark:border-indigo-900/60 dark:bg-slate-950 dark:text-white dark:placeholder:text-slate-600"
+                      />
+                      {managerEmail && (
+                        <div className="mt-3 flex items-center gap-2">
+                          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-indigo-100 text-[9px] font-bold text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-300">
+                            {getRowLabel(managerEmail).slice(0, 2).toUpperCase()}
+                          </div>
+                          <span className="truncate text-[10px] text-slate-500 dark:text-slate-400">
+                            {getRowLabel(managerEmail)}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="rounded-[22px] border border-slate-200 bg-slate-50/50 p-4 dark:border-slate-800 dark:bg-slate-900/30">
+                      <div className="mb-4 flex items-center justify-between">
+                        <div className="flex items-center gap-2.5">
+                          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-slate-500 shadow-sm dark:bg-slate-800">
+                            <Users className="h-4 w-4" />
+                          </div>
+                          <div>
+                            <p className="text-xs font-semibold text-slate-900 dark:text-white">Project members</p>
+                            <p className="text-[10px] text-slate-400">Add collaborators</p>
+                          </div>
+                        </div>
+                        <span className="rounded-full bg-white px-2 py-1 text-[9px] font-semibold text-slate-400 shadow-sm dark:bg-slate-900">
+                          {memberCount} added
+                        </span>
+                      </div>
+
+                      <div className="space-y-2">
+                        {memberEmails.map((email, index) => (
+                          <div key={`member-${index}`} className="group flex items-center gap-2">
+                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white text-[9px] font-bold text-slate-400 shadow-sm dark:bg-slate-800">
+                              {index + 1}
+                            </div>
+                            <input
+                              type="email"
+                              list="known-user-emails"
+                              value={email}
+                              onChange={(e) =>
+                                setMemberEmails((previous) =>
+                                  previous.map((item, itemIndex) => (itemIndex === index ? e.target.value : item))
+                                )
+                              }
+                              placeholder="member@example.com"
+                              className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/5 dark:border-slate-800 dark:bg-slate-950 dark:text-white dark:placeholder:text-slate-600"
+                            />
+                            {memberEmails.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setMemberEmails((previous) => previous.filter((_, i) => i !== index))
+                                }
+                                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-400 opacity-0 transition hover:bg-red-50 hover:text-red-500 group-hover:opacity-100 dark:hover:bg-red-950/30"
+                                aria-label="Remove member"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => setMemberEmails((previous) => [...previous, ""])}
+                        className="mt-3 inline-flex items-center gap-1.5 text-[10px] font-bold text-indigo-600 transition hover:text-indigo-700 dark:text-indigo-400"
+                      >
+                        <Plus className="h-3 w-3" />
+                        Add collaborator
+                      </button>
+                    </div>
+                  </div>
+                </section>
+              )}
+
+              {/* DOCUMENT VAULT */}
+              <section className="mb-10">
+                <div className="mb-4">
+                  <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Document vault</h3>
+                  <p className="mt-1 text-xs text-slate-400">
+                    Keep the main project reference close to the work.
+                  </p>
+                </div>
+
+                {formData.attachment ? (
+                  <div className="group flex items-center justify-between rounded-[22px] border border-emerald-200 bg-emerald-50/60 p-4 dark:border-emerald-900/50 dark:bg-emerald-950/10">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white shadow-sm dark:bg-slate-900">
+                        <FileText className="h-5 w-5 text-emerald-500" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="truncate text-xs font-semibold text-slate-900 dark:text-white">
+                          {formData.attachment.name}
+                        </p>
+                        <p className="mt-1 text-[10px] text-slate-400">
+                          PDF · {(formData.attachment.size / 1024).toFixed(2)} KB
+                        </p>
+                      </div>
+                    </div>
+                    {canManageProject && (
+                      <button
+                        type="button"
+                        onClick={handleRemoveFile}
+                        className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-red-100 hover:text-red-500 dark:hover:bg-red-950/30"
+                        aria-label="Remove file"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
+                ) : existingAttachment && isEditMode ? (
+                  <div className="rounded-[22px] border border-slate-200 bg-slate-50/60 p-4 dark:border-slate-800 dark:bg-slate-900/30">
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white shadow-sm dark:bg-slate-800">
+                          <FileText className="h-5 w-5 text-slate-500" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="truncate text-xs font-semibold text-slate-900 dark:text-white">
+                            {existingAttachment}
+                          </p>
+                          <p className="mt-1 text-[10px] text-slate-400">Existing project document</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <a
+                          href={`/uploads/projects/${existingAttachment}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-white hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+                          title="View file"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </a>
+                        <a
+                          href={`/uploads/projects/${existingAttachment}`}
+                          download
+                          className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-white hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+                          title="Download file"
+                        >
+                          <Download className="h-4 w-4" />
+                        </a>
+                      </div>
+                    </div>
+                    {canManageProject && (
+                      <label className="mt-4 flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-slate-300 bg-white px-4 py-3 text-[10px] font-semibold text-slate-500 transition hover:border-indigo-400 hover:bg-indigo-50/40 hover:text-indigo-600 dark:border-slate-700 dark:bg-slate-950 dark:hover:border-indigo-700 dark:hover:bg-indigo-950/20 dark:hover:text-indigo-400">
+                        <Upload className="h-3.5 w-3.5" />
+                        Replace document
+                        <input type="file" accept=".pdf" onChange={handleFileChange} className="hidden" />
+                      </label>
+                    )}
+                  </div>
+                ) : canManageProject ? (
+                  <label className="group flex cursor-pointer flex-col items-center justify-center rounded-[22px] border border-dashed border-slate-300 bg-slate-50/50 px-5 py-9 transition hover:border-indigo-400 hover:bg-indigo-50/40 dark:border-slate-800 dark:bg-slate-900/30 dark:hover:border-indigo-800 dark:hover:bg-indigo-950/10">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white shadow-sm transition group-hover:-translate-y-0.5 group-hover:shadow-md dark:bg-slate-800">
+                      <Upload className="h-5 w-5 text-slate-400 group-hover:text-indigo-500" />
+                    </div>
+                    <p className="mt-3 text-xs font-semibold text-slate-700 dark:text-slate-300">
+                      Add a project PDF
+                    </p>
+                    <p className="mt-1 text-[10px] text-slate-400">
+                      Drop here or click to browse · Maximum 10MB
+                    </p>
+                    <input type="file" accept=".pdf" onChange={handleFileChange} className="hidden" />
+                  </label>
+                ) : (
+                  <div className="rounded-[22px] border border-dashed border-slate-200 px-5 py-8 text-center dark:border-slate-800">
+                    <Paperclip className="mx-auto h-5 w-5 text-slate-300 dark:text-slate-700" />
+                    <p className="mt-2 text-xs text-slate-400">No project document attached.</p>
+                  </div>
+                )}
+              </section>
+
+              {/* LABELS */}
+              <section className="mb-10">
+                <div className="mb-4">
+                  <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Project signals</h3>
+                  <p className="mt-1 text-xs text-slate-400">
+                    Add lightweight tags to make this project easier to discover.
+                  </p>
+                </div>
+
+                {canManageProject && (
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <Tag className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+                      <input
+                        type="text"
+                        value={labelInput}
+                        onChange={(e) => setLabelInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            handleAddLabel();
+                          }
+                        }}
+                        placeholder="frontend, urgent, Q1..."
+                        className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-9 pr-3 text-xs text-slate-900 outline-none transition focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/5 dark:border-slate-800 dark:bg-slate-950 dark:text-white dark:placeholder:text-slate-600"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleAddLabel}
+                      className="rounded-xl border border-slate-200 bg-white px-4 text-[11px] font-semibold text-slate-600 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-indigo-950/20 dark:hover:text-indigo-400"
+                    >
+                      Add signal
+                    </button>
+                  </div>
+                )}
+
+                {formData.labels.length > 0 ? (
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {formData.labels.map((label, index) => (
+                      <span
+                        key={label}
+                        className="group inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-[10px] font-semibold text-slate-600 shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300"
+                      >
+                        <span
+                          className={`h-1.5 w-1.5 rounded-full ${
+                            ["bg-indigo-500", "bg-blue-500", "bg-emerald-500", "bg-orange-500", "bg-pink-500"][index % 5]
+                          }`}
+                        />
+                        {label}
+                        {canManageProject && (
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveLabel(label)}
+                            className="rounded-full text-slate-300 transition hover:text-red-500 dark:text-slate-600"
+                            aria-label={`Remove ${label}`}
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        )}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="mt-4 rounded-2xl border border-dashed border-slate-200 px-4 py-5 text-center dark:border-slate-800">
+                    <p className="text-[10px] text-slate-400">No project signals yet.</p>
+                  </div>
+                )}
+              </section>
+            </form>
+          </div>
+
+          {/* COMMAND BAR */}
+          <div className="shrink-0 border-t border-slate-200 bg-white/95 px-5 py-3 backdrop-blur-xl dark:border-slate-800 dark:bg-[#080d18]/95 sm:px-7">
+            <div className="flex items-center justify-between gap-4">
+              <div className="hidden items-center gap-2 sm:flex">
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-900">
+                  <Clock3 className="h-3.5 w-3.5 text-slate-400" />
+                </div>
+                <div>
+                  <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">
+                    Workspace state
+                  </p>
+                  <p className="text-[10px] font-medium text-slate-600 dark:text-slate-300">
+                    {completion}% ready
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex w-full items-center justify-end gap-2 sm:w-auto">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 hover:text-slate-900 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  form="project-form"
+                  disabled={loading}
+                  className="group inline-flex items-center gap-2 rounded-xl bg-slate-950 px-5 py-2.5 text-xs font-semibold text-white shadow-lg shadow-slate-950/10 transition hover:bg-indigo-600 hover:shadow-indigo-600/20 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-indigo-600 dark:hover:bg-indigo-500"
+                >
+                  {loading ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <ArrowUpRight className="h-3.5 w-3.5 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+                  )}
+                  {loading
+                    ? "Saving..."
+                    : canManageProject
+                    ? isEditMode
+                      ? "Update project"
+                      : "Create project"
+                    : "Save changes"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

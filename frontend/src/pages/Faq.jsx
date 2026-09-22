@@ -53,7 +53,7 @@ const FAQ = ({ showChrome = true }) => (
 
     <section className="mx-auto max-w-3xl px-5 pb-4 pt-16 text-center sm:px-8">
       <h1 className="text-4xl font-semibold tracking-tight text-slate-900 sm:text-5xl">
-        Frequently asked questions
+        Frequently <div className="bg-gradient-to-r from-indigo-600 via-indigo-500 to-violet-600 bg-clip-text text-transparent"> asked questions</div>
       </h1>
       <p className="mt-4 text-base leading-7 text-slate-600">
         Can't find what you're looking for? Reach out and we'll get back to you.

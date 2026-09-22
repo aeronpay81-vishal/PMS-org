@@ -77,6 +77,24 @@ export const authAPI = {
     }
   },
 
+  googleLogin: async (token) => {
+    try {
+      const response = await apiClient.post('/auth/google-login', {
+        token,
+      })
+      const data = response.data.data || response.data
+
+      if (data.access_token) {
+        localStorage.setItem('access_token', data.access_token)
+        localStorage.setItem('user', JSON.stringify(data.user))
+      }
+
+      return response.data
+    } catch (error) {
+      throw error.response?.data?.message || error.message || 'Google login failed'
+    }
+  },
+
   logout: () => {
     localStorage.removeItem('access_token');
     localStorage.removeItem('user');

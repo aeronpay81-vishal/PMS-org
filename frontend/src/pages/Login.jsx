@@ -13,6 +13,7 @@ import {
 import { authAPI } from '../api/admin'
 import EmailVerificationOtp from '../components/dashboard/EmailVerificationOtp'
 import Navbar from '../components/navigation/Navbar'
+import { GoogleLogin } from '@react-oauth/google'
 
 // ================= Entrance / ambient animation styles =================
 const AeroStyles = () => (
@@ -94,7 +95,7 @@ const Login = ({ onLogin, showFooter = true }) => {
   const [isOtpVerifying, setIsOtpVerifying] = useState(false)
   const [isChoosingRole, setIsChoosingRole] = useState(false)
   const [tempCredentials, setTempCredentials] = useState(null)
-
+  
   const isLogin = mode === 'login'
 
   const validatePassword = (pwd) => {
@@ -239,6 +240,37 @@ const Login = ({ onLogin, showFooter = true }) => {
     setTempCredentials(null)
   }
 
+  const handleGoogleSuccess = async (credentialResponse) => {
+    setIsLoading(true)
+    try {
+      const response = await authAPI.googleLogin(credentialResponse.credential)
+      
+      if (!response || response.success === false) {
+        setErrorMessage(response?.message || 'Google Login failed')
+        return
+      }
+
+      const authData = response.data || response
+      if (!authData?.access_token) {
+        setErrorMessage('Google Login failed: no valid token returned')
+        return
+      }
+
+      onLogin(authData)
+    } catch (error) {
+      // Extract the actual message from backend response or fallback
+      const msg =
+        typeof error === 'string'
+          ? error
+          : error?.response?.data?.message ||
+            error?.message ||
+            'Google Login failed. Please try again.'
+      setErrorMessage(msg)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-white text-slate-900">
       <AeroStyles />
@@ -257,7 +289,7 @@ const Login = ({ onLogin, showFooter = true }) => {
           {/* ==================================================
               LEFT CONTENT — staggered entrance sequence
           ================================================== */}
-          <div className="lg:pt-10">
+          <div className="lg:pt-4">
 
             {/* Badge */}
             <div
@@ -271,14 +303,14 @@ const Login = ({ onLogin, showFooter = true }) => {
             </div>
 
             {/* Heading */}
-            <h1
-              className="aero-in mt-6 max-w-[540px] text-[38px] font-semibold leading-[1.08] tracking-[-0.04em] sm:text-[46px]"
+            <h4
+              className="aero-in mt-2 max-w-[540px] text-[20px] font-semibold leading-[1.08] tracking-[-0.04em] sm:text-[36px]"
               style={{ animationDelay: '90ms' }}
             >
               <span className="bg-gradient-to-r from-indigo-600 via-violet-600 to-purple-600 bg-clip-text text-transparent">
                 Project management for a smoother workflow.
               </span>
-            </h1>
+            </h4>
 
             {/* Description */}
             <p
@@ -294,8 +326,12 @@ const Login = ({ onLogin, showFooter = true }) => {
               className="aero-in relative mt-10 max-w-[440px]"
               style={{ animationDelay: '280ms' }}
             >
-              <img
-                src="https://dapulse-res.cloudinary.com/image/upload/f_auto,q_auto:best/remote_mondaycom_static/uploads/noareshef/general%20lp/Project_managemnt_asset1.png"
+              <video
+                autoPlay
+                loop
+                muted
+                playsInline
+                src="https://dapulse-res.cloudinary.com/video/upload/q_auto:best,f_auto,cs_copy/remote_mondaycom_static/video/video-library/features/communication.mp4"
                 alt="Project management board preview"
                 className="aero-float block h-auto w-full "
               />
@@ -303,7 +339,7 @@ const Login = ({ onLogin, showFooter = true }) => {
 
             {/* Trust row */}
             <div
-              className="aero-in mt-12 flex items-center gap-3"
+              className="aero-in mt-4 flex items-center gap-3"
               style={{ animationDelay: '420ms' }}
             >
               <div className="flex -space-x-2">
@@ -317,13 +353,7 @@ const Login = ({ onLogin, showFooter = true }) => {
             </div>
 
             {/* Security note — inline, not boxed */}
-            <div
-              className="aero-in mt-4 flex items-center gap-2 text-xs text-slate-400"
-              style={{ animationDelay: '500ms' }}
-            >
-              <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-slate-400" />
-              Protected with modern encryption and secure authentication
-            </div>
+           
 
           </div>
 
@@ -529,30 +559,20 @@ const Login = ({ onLogin, showFooter = true }) => {
                   <div className="h-px flex-1 bg-slate-200" />
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    type="button"
-                    className="flex h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white text-[11px] font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 active:scale-[0.97]"
-                  >
-                    <svg className="h-4 w-4" viewBox="0 0 24 24">
-                      <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" />
-                      <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                      <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
-                      <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
-                    </svg>
-                    Google
-                  </button>
-
-                  <button
-                    type="button"
-                    className="flex h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white text-[11px] font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 active:scale-[0.97]"
-                  >
-                    <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.17 6.839 9.49.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.603-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.462-1.11-1.462-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.03-2.682-.103-.253-.447-1.27.098-2.646 0 0 .84-.269 2.75 1.025.8-.223 1.65-.334 2.5-.334.85 0 1.7.111 2.5.334 1.91-1.294 2.75-1.025 2.75-1.025.545 1.376.201 2.393.099 2.646.64.698.1 1.591.1 2.682 0 3.841-2.337 4.687-4.565 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.167 22 16.418 22 12c0-5.523-4.477-10-10-10z" />
-                    </svg>
-                    GitHub
-                  </button>
+                <div className="flex justify-center mt-4">
+                  <GoogleLogin
+                    onSuccess={handleGoogleSuccess}
+                    onError={() => {
+                      setErrorMessage('Google Login Failed. Please try again.');
+                    }}
+                  />
                 </div>
+
+                {errorMessage && (
+                  <div className="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-center text-xs font-medium text-red-600" role="alert">
+                    {errorMessage}
+                  </div>
+                )}
 
                 <div className="mt-6 text-center text-xs text-slate-500">
                   {isLogin ? "Don't have an account?" : 'Already have an account?'}

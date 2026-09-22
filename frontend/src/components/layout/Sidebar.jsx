@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import BrandLogo from "./BrandLogo";
 import { useTheme } from "../../context/ThemeContext";
-
+import logo from "../../../public/logo.png";
 const Sidebar = ({ activeItem = "Dashboard", onNavigate, mobileOpen, onClose }) => {
   const [collapsed, setCollapsed] = useState(false);
   const { theme } = useTheme();

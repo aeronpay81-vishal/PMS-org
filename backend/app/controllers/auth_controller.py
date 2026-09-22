@@ -100,6 +100,38 @@ class AuthController:
                 'success': False,
                 'message': f'Error: {str(e)}'
             }, 500
+            
+    @staticmethod
+    def google_login():
+        """
+        Handle user login via Google
+        """
+        try:
+            data = request.get_json()
+            if not data:
+                return {'success': False, 'message': 'No data provided'}, 400
+            
+            token = data.get('token')
+            if not token:
+                return {'success': False, 'message': 'Google token is required'}, 400
+                
+            result = AuthService.google_login(token)
+            
+            return {
+                'success': True,
+                'message': 'Google login successful',
+                'data': result
+            }, 200
+        except ValueError as e:
+            return {
+                'success': False,
+                'message': str(e)
+            }, 401
+        except Exception as e:
+            return {
+                'success': False,
+                'message': f'Error: {str(e)}'
+            }, 500
     
     @staticmethod
     def refresh(current_user_id):

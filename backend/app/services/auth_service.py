@@ -4,6 +4,10 @@ from app.models import User, ProjectMember
 from flask_jwt_extended import create_access_token, create_refresh_token
 from sqlalchemy.exc import IntegrityError
 from datetime import datetime
+from google.oauth2 import id_token
+from google.auth.transport import requests
+from flask import current_app
+
 
 
 class AuthService:
@@ -123,6 +127,45 @@ class AuthService:
             'access_token': tokens['access_token'],
             'refresh_token': tokens['refresh_token']
         }
+    
+    @staticmethod
+    def google_login(token):
+        """
+        Authenticate user via Google ID Token
+        """
+        if not token:
+            raise ValueError("Token is missing")
+        try:
+            client_id = current_app.config.get("GOOGLE_CLIENT_ID")
+            idinfo = id_token.verify_oauth2_token(
+                token, requests.Request(), client_id,
+                clock_skew_in_seconds=10
+            )
+            
+            email = idinfo.get("email")
+            full_name = idinfo.get("name", "")
+            
+            if not email:
+                raise ValueError("Email not found in Google token")
+                
+            # Only allow login if user already has an account
+            user = User.query.filter_by(email=email).first()
+            if not user:
+                raise ValueError("No account found with this Google email. Please register first.")
+            
+            if not user.is_active:
+                raise ValueError('User account is inactive')
+                
+            tokens = AuthService.generate_tokens(user.id)
+            
+            return {
+                'user': user.to_dict(),
+                'access_token': tokens['access_token'],
+                'refresh_token': tokens['refresh_token']
+            }
+            
+        except ValueError:
+            raise  # re-raise with original clean message
     
     @staticmethod
     def generate_tokens(user_id):
