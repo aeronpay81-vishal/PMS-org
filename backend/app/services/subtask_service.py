@@ -8,6 +8,7 @@ from werkzeug.utils import secure_filename
 
 from app import db
 from app.models import Subtask, Task
+from app.services.task_activity_service import TaskActivityService
 from app.utils.permission_checker import PermissionChecker, RolePermissionError
 
 
@@ -65,7 +66,7 @@ class SubtaskService:
     @staticmethod
     def create_subtask(user_id, task_id, data, files=None):
         task = SubtaskService._get_task(user_id, task_id)
-        if not PermissionChecker.can_view_task(user_id, task_id):
+        if not PermissionChecker.can_update_task(user_id, task_id):
             raise RolePermissionError('You do not have permission to add a subtask to this task')
 
         title = str(data.get('title') or '').strip()
@@ -86,6 +87,12 @@ class SubtaskService:
         )
         db.session.add(subtask)
         db.session.commit()
+        TaskActivityService.log_activity(
+            task.id,
+            user_id,
+            'subtask_created',
+            f'Created subtask "{subtask.title}"',
+        )
         return subtask.to_dict()
 
     @staticmethod
@@ -116,6 +123,12 @@ class SubtaskService:
             subtask.attachments = json.dumps(existing + SubtaskService._save_files(files, task_id))
         subtask.updated_at = datetime.utcnow()
         db.session.commit()
+        TaskActivityService.log_activity(
+            task_id,
+            user_id,
+            'subtask_updated',
+            f'Updated subtask "{subtask.title}"',
+        )
         return subtask.to_dict()
 
     @staticmethod
@@ -126,6 +139,13 @@ class SubtaskService:
         subtask = Subtask.query.filter_by(id=subtask_id, task_id=task_id).first()
         if not subtask:
             raise ValueError('Subtask not found')
+        subtask_title = subtask.title
         db.session.delete(subtask)
         db.session.commit()
+        TaskActivityService.log_activity(
+            task_id,
+            user_id,
+            'subtask_deleted',
+            f'Deleted subtask "{subtask_title}"',
+        )
         return {'success': True, 'message': 'Subtask deleted successfully'}

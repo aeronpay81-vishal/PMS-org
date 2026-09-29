@@ -1,5 +1,6 @@
 from app import db
 from app.models import Task, TaskActivity
+from app.utils.permission_checker import PermissionChecker
 
 
 class TaskActivityService:
@@ -25,10 +26,12 @@ class TaskActivityService:
         return activity.to_dict()
 
     @staticmethod
-    def get_task_activity(task_id):
+    def get_task_activity(task_id, user_id=None):
         task = Task.query.get(task_id)
         if not task:
             raise ValueError('Task not found')
+        if user_id is not None and not PermissionChecker.can_view_task(user_id, task_id):
+            raise ValueError('You do not have access to this task')
         activities = TaskActivity.query.filter_by(task_id=task_id).order_by(TaskActivity.created_at.desc()).all()
         return [a.to_dict() for a in activities]
 

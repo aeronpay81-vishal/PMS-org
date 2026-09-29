@@ -26,7 +26,6 @@ const STAGE_DEFS = [
     { id: "todo", statusKey: "todo", name: "To Do", description: "Tasks to be started", color: "blue" },
     { id: "progress", statusKey: "in_progress", name: "In Progress", description: "Tasks currently being worked on", color: "amber" },
     { id: "review", statusKey: "review", name: "Review", description: "Waiting for approval", color: "purple" },
-    { id: "testing", statusKey: "testing", name: "Testing", description: "Quality verification", color: "cyan" },
     { id: "done", statusKey: "done", name: "Done", description: "Completed tasks", color: "green" },
 ];
 
@@ -73,10 +72,9 @@ const priorityColor = (priority, isDone) => {
     return "text-amber-500";
 };
 
-// NEW: normalizes any status string the backend might send ("In Progress",
+// Normalizes any status string the backend might send ("In Progress",
 // "in-progress", " Review ", etc.) down to the flat keys used in STAGE_DEFS
-// ("in_progress", "review", ...). Without this, a task whose status doesn't
-// match a statusKey EXACTLY just silently disappears from every column.
+// ("in_progress", "review", ...).
 const normalizeStatus = (raw) => {
     if (!raw) return "";
     return String(raw)
@@ -157,12 +155,8 @@ const Workflow = ({ user }) => {
     }, []);
 
     // Load full detail (with tasks) for the selected project.
-    // FIX: projectsAPI.getById() doesn't always embed tasks the same way —
-    // some backends return them under `tasks`, others under `assignments`,
-    // and some don't embed them at all. We now fall back to fetching all
-    // tasks separately and filtering by project_id, exactly like the AI
-    // Insights page already does, so the board is never empty just because
-    // of a field-name mismatch.
+    // Falls back to fetching all tasks separately and filtering by project_id
+    // if the project detail endpoint doesn't embed tasks.
     const loadProjectDetail = async (silent = false) => {
         if (!selectedProjectId) return;
         try {
@@ -209,8 +203,6 @@ const Workflow = ({ user }) => {
     const tasks = projectDetail?.tasks || [];
 
     // Group tasks into stages based on their (normalized) status field.
-    // FIX: uses normalizeStatus() on both sides so "In Progress", "in-progress",
-    // "in_progress " etc. all land in the right column instead of vanishing.
     const stages = useMemo(() => {
         return STAGE_DEFS.map((def) => {
             const stageTasks = tasks.filter(
@@ -231,8 +223,9 @@ const Workflow = ({ user }) => {
         const total = tasks.length;
         const completed = tasks.filter((t) => normalizeStatus(t.status) === "done").length;
         const progress = total > 0 ? Math.round((completed / total) * 100) : 0;
+        // Testing stage removed — bottlenecks now only check "review".
         const bottlenecks = STAGE_DEFS
-            .filter((d) => ["review", "testing"].includes(d.id))
+            .filter((d) => ["review"].includes(d.id))
             .map((d) => ({
                 name: d.name,
                 count: tasks.filter((t) => normalizeStatus(t.status) === d.statusKey).length,
@@ -348,9 +341,9 @@ const Workflow = ({ user }) => {
                             </div>
 
                             <div>
-                                <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+                                <div className="text-2xl font-semibold text-slate-900 dark:text-white">
                                     Workflow Engine
-                                </h1>
+                                </div>
 
                                 <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
                                     Manage tasks and project workflow stages
@@ -411,7 +404,7 @@ const Workflow = ({ user }) => {
                             <button
                                 onClick={() => openDrawer("todo")}
                                 disabled={!selectedProjectId}
-                                className="flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                                className="flex items-center gap-2 rounded-xl bg-indigo-600 px-5 text-sm font-semibold text-white shadow-sm shadow-indigo-500/20 transition-all duration-200 hover:bg-indigo-700 hover:shadow-md hover:shadow-indigo-500/20 active:scale-[0.98] dark:bg-indigo-500 dark:hover:bg-indigo-400 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
                             >
                                 <Plus size={17} />
                                 Add Task
@@ -706,44 +699,6 @@ const Workflow = ({ user }) => {
 
 
             {/* AUTOMATION */}
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
-
-                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-
-                    <div>
-                        <div className="flex items-center gap-2">
-                            <Zap size={18} className="text-amber-500" />
-
-                            <h3 className="font-semibold text-slate-900 dark:text-white">
-                                Workflow Automation
-                            </h3>
-                        </div>
-
-                        <p className="mt-1 text-xs text-slate-500">
-                            Automate common project actions.
-                        </p>
-                    </div>
-
-                    <button className="rounded-lg bg-blue-50 px-4 py-2 text-xs font-semibold text-blue-600 dark:bg-blue-950/30">
-                        Manage Rules
-                    </button>
-                </div>
-
-                <div className="mt-4 grid gap-3 md:grid-cols-3">
-                    <AutomationItem
-                        title="Move task to Review"
-                        description="When all subtasks are completed"
-                    />
-                    <AutomationItem
-                        title="Notify team"
-                        description="When a task is assigned"
-                    />
-                    <AutomationItem
-                        title="Prioritize overdue"
-                        description="When task passes due date"
-                    />
-                </div>
-            </div>
 
 
             {/* ADD TASK DRAWER — managers only, slides in from the right, closes back to the right */}

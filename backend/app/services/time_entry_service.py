@@ -2,6 +2,7 @@ from datetime import datetime
 from app import db
 from app.models import Task, TimeEntry
 from app.utils.permission_checker import PermissionChecker
+from app.services.task_activity_service import TaskActivityService
 
 
 class TimeEntryService:
@@ -33,6 +34,7 @@ class TimeEntryService:
         )
         db.session.add(entry)
         db.session.commit()
+        TaskActivityService.log_activity(task_id, user_id, 'timer_started', 'Started work timer')
         return entry.to_dict()
 
     @staticmethod
@@ -46,6 +48,12 @@ class TimeEntryService:
         delta = entry.ended_at - entry.started_at
         entry.duration_minutes = int(delta.total_seconds() // 60)
         db.session.commit()
+        TaskActivityService.log_activity(
+            task_id,
+            user_id,
+            'timer_stopped',
+            f'Stopped work timer ({entry.duration_minutes} minutes)',
+        )
         return entry.to_dict()
 
     @staticmethod

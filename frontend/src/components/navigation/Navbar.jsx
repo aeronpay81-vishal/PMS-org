@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ArrowUpRight, Menu, X } from "lucide-react";
 import Logo from "../../../public/logo.png";
-
+import { Link } from "react-router-dom";
 const NAV_ITEMS = [
   { label: "Features", href: "/features", key: "features" },
   { label: "How it works", href: "/how-it-works", key: "how-it-works" },
@@ -39,8 +39,8 @@ const Navbar = ({
       <div className="mx-auto flex h-[68px] max-w-7xl items-center justify-between px-5 sm:px-6 lg:px-8">
 
         {/* Logo */}
-        <a
-          href="/"
+        <Link
+          to="/"
           aria-label="AeroPilot home"
           className="group flex items-center"
         >
@@ -49,7 +49,7 @@ const Navbar = ({
             alt="AeroPilot"
             className="h-12 w-auto object-contain transition-transform duration-200 group-hover:scale-[1.02]"
           />
-        </a>
+        </Link>
 
         {/* Desktop Navigation */}
         <nav
@@ -60,9 +60,9 @@ const Navbar = ({
             const isActive = activePage === item.key;
 
             return (
-              <a
+              <Link
                 key={item.key}
-                href={item.href}
+                to={item.href}
                 className={`relative rounded-full px-3.5 py-2 text-[12.5px] font-medium transition-all duration-200 ${
                   isActive
                     ? "bg-white text-indigo-600 shadow-sm ring-1 ring-slate-200/70"
@@ -74,7 +74,7 @@ const Navbar = ({
                 {isActive && (
                   <span className="absolute bottom-1 left-1/2 h-0.5 w-3 -translate-x-1/2 rounded-full bg-indigo-500" />
                 )}
-              </a>
+              </Link>
             );
           })}
         </nav>
@@ -88,17 +88,17 @@ const Navbar = ({
                 : "Already have an account?"}
             </span>
           ) : (
-            <a
-              href="/login"
+            <Link
+              to="/login"
               className="text-[13px] font-medium text-slate-500 transition-colors hover:text-slate-900"
             >
               Sign in
-            </a>
+            </Link>
           )}
 
           {authHref ? (
-            <a
-              href={authHref}
+            <Link
+              to={authHref}
               className="
                 group relative flex h-10 items-center gap-2
                 overflow-hidden rounded-full
@@ -117,7 +117,7 @@ const Navbar = ({
               <ArrowUpRight
                 className="h-3.5 w-3.5 transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
               />
-            </a>
+            </Link>
           ) : (
             <button
               type="button"
@@ -186,9 +186,9 @@ const Navbar = ({
             const isActive = activePage === item.key;
 
             return (
-              <a
+              <Link
                 key={item.key}
-                href={item.href}
+                to={item.href}
                 onClick={() => setNavOpen(false)}
                 className={`flex items-center justify-between rounded-xl px-4 py-3 text-[13px] font-medium transition-all ${
                   isActive
@@ -201,7 +201,7 @@ const Navbar = ({
                 {isActive && (
                   <span className="h-1.5 w-1.5 rounded-full bg-indigo-500" />
                 )}
-              </a>
+              </Link>
             );
           })}
 
@@ -225,8 +225,8 @@ const Navbar = ({
               <ArrowUpRight className="h-3.5 w-3.5" />
             </button>
           ) : (
-            <a
-              href="/login"
+            <Link
+              to="/login"
               onClick={() => setNavOpen(false)}
               className="
                 mt-3 flex h-11 items-center justify-center gap-2
@@ -238,7 +238,7 @@ const Navbar = ({
             >
               Get started
               <ArrowUpRight className="h-3.5 w-3.5" />
-            </a>
+            </Link>
           )}
         </nav>
       </div>

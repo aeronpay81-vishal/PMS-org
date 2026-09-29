@@ -82,14 +82,14 @@ const Footer = () => (
             {SOCIALS.map((social) => {
               const Icon = social.icon;
               return (
-                <a
+                <Link
                   key={social.label}
-                  href={social.href}
+                  to={social.href}
                   aria-label={social.label}
                   className="flex h-8 w-8 items-center justify-center rounded border border-slate-200 bg-white text-[#626F86] transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-[#4F46E5]"
                 >
                   <Icon className="h-3.5 w-3.5" />
-                </a>
+                </Link>
               );
             })}
           </div>
@@ -123,9 +123,9 @@ const Footer = () => (
         </p>
         <div className="flex flex-wrap gap-5">
           {["Privacy", "Terms", "Cookies"].map((item) => (
-            <a key={item} href="#" className="text-[12px] text-[#8993A4] hover:text-[#4F46E5]">
+            <Link key={item} to="/privacy" className="text-[12px] text-[#8993A4] hover:text-[#4F46E5]">
               {item}
-            </a>
+            </Link>
           ))}
         </div>
       </div>

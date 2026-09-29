@@ -30,6 +30,32 @@ const getDisplayPriority = (task) => {
     return p.charAt(0).toUpperCase() + p.slice(1);
 };
 
+// Human-readable status label for the hover tooltip
+const getStatusLabel = (status) => {
+    switch ((status || "").toLowerCase()) {
+        case "done":
+            return "Completed";
+        case "in_progress":
+            return "In Progress";
+        case "review":
+            return "In Review";
+        case "backlog":
+            return "Backlog";
+        case "todo":
+            return "To Do";
+        default:
+            return status ? status.replace(/_/g, " ") : "—";
+    }
+};
+
+// Formats a YYYY-MM-DD date key into "Sep 20, 2026"
+const formatDateKey = (dateKey) => {
+    if (!dateKey) return "—";
+    const d = new Date(`${dateKey}T00:00:00`);
+    if (Number.isNaN(d.getTime())) return dateKey;
+    return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+};
+
 export const Calender = ({ user }) => {
     const [currentDate, setCurrentDate] = useState(REFERENCE_TODAY);
     const [view, setView] = useState("Month");
@@ -89,17 +115,26 @@ export const Calender = ({ user }) => {
     }, [selectedProjectId]);
 
     // Normalize tasks coming back from the API into the shape the calendar
-    // grid/deadlines panel work with: { id, title, date, priority, status }
+    // grid/deadlines panel work with. We keep the full task payload around so
+    // the hover tooltip can show description, assignee, priority etc.
     const tasks = useMemo(() => {
         const rawTasks = projectDetail?.tasks || [];
         return rawTasks
             .map((t) => ({
                 id: t.id,
                 title: t.summary || t.description || "Untitled task",
+                description: t.description || "",
                 date: toDateKey(t.due_date),
                 priority: getDisplayPriority(t),
                 status: (t.status || "").toLowerCase(),
+                rawStatus: t.status || "",
                 project: projectDetail?.summary || "",
+                assignee:
+                    t.assignee?.full_name ||
+                    t.assignee?.username ||
+                    t.assigned_to_name ||
+                    null,
+                labels: Array.isArray(t.labels) ? t.labels : [],
             }))
             .filter((t) => t.date); // skip tasks with no due date on the calendar grid
     }, [projectDetail]);
@@ -144,16 +179,16 @@ export const Calender = ({ user }) => {
     const getPriorityStyle = (priority) => {
         switch (priority) {
             case "High":
-                return "bg-red-50 text-red-600 border-red-100";
+                return "bg-red-50 text-red-600 border-red-100 dark:bg-red-950/40 dark:text-red-300 dark:border-red-900/60";
 
             case "Medium":
-                return "bg-orange-50 text-orange-600 border-orange-100";
+                return "bg-orange-50 text-orange-600 border-orange-100 dark:bg-orange-950/40 dark:text-orange-300 dark:border-orange-900/60";
 
             case "Completed":
-                return "bg-purple-50 text-purple-600 border-purple-100";
+                return "bg-purple-50 text-purple-600 border-purple-100 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-900/60";
 
             default:
-                return "bg-emerald-50 text-emerald-600 border-emerald-100";
+                return "bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900/60";
         }
     };
 
@@ -279,7 +314,7 @@ export const Calender = ({ user }) => {
                             </div>
 
                             <div>
-                                <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+                                <h1 className="text-2xl font-semibold text-slate-900 dark:text-white">
                                     Calendar
                                 </h1>
 
@@ -472,11 +507,14 @@ export const Calender = ({ user }) => {
                                 const dayTasks = getTasksForDay(day);
                                 const isToday =
                                     day === todayDay && month === todayMonth && year === todayYear;
+                                const MAX_VISIBLE = 3;
+                                const visibleTasks = dayTasks.slice(0, MAX_VISIBLE);
+                                const hiddenCount = dayTasks.length - MAX_VISIBLE;
 
                                 return (
                                     <div
                                         key={index}
-                                        className="min-h-[115px] border-b border-r border-slate-100 p-2 dark:border-slate-800"
+                                        className="group/day relative min-h-[100px] border-b border-r border-slate-100 p-2 transition-colors hover:bg-slate-50/70 dark:border-slate-800 dark:hover:bg-slate-800/30"
                                     >
 
                                         {day && (
@@ -492,9 +530,9 @@ export const Calender = ({ user }) => {
                                                         {day}
                                                     </span>
 
-                                                    {dayTasks.length > 2 && (
+                                                    {dayTasks.length > MAX_VISIBLE && (
                                                         <span className="text-[10px] text-slate-400">
-                                                            +{dayTasks.length - 2}
+                                                            +{hiddenCount}
                                                         </span>
                                                     )}
 
@@ -503,31 +541,44 @@ export const Calender = ({ user }) => {
 
                                                 <div className="space-y-1">
 
-                                                    {dayTasks.slice(0, 2).map((task) => (
+                                                    {visibleTasks.map((task) => (
                                                         <div
                                                             key={task.id}
-                                                            className={`truncate rounded-md border px-2 py-1.5 text-[10px] font-medium ${getPriorityStyle(
+                                                            className={`relative cursor-pointer rounded-md border px-2 py-1.5 text-[10px] font-medium leading-snug transition-all ${getPriorityStyle(
                                                                 task.priority
                                                             )}`}
-                                                            title={task.title}
                                                         >
-                                                            <div className="flex items-center gap-1">
+                                                            {/* Normal state: 2-line clamp */}
+                                                            <div className="line-clamp-2 group-hover/day:hidden">
+                                                                <div className="flex items-start gap-1">
+                                                                    <span
+                                                                        className={`mt-1 h-1.5 w-1.5 shrink-0 rounded-full ${getPriorityDot(
+                                                                            task.priority
+                                                                        )}`}
+                                                                    />
+                                                                    <span className="block w-full break-words">
+                                                                        {task.title}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
 
-                                                                <span
-                                                                    className={`h-1.5 w-1.5 shrink-0 rounded-full ${getPriorityDot(
-                                                                        task.priority
-                                                                    )}`}
-                                                                />
+                                                            {/* Hover state: full title, wrapping, no clamp */}
+                                                            <div className="hidden group-hover/day:block">
+                                                                <div className="flex items-start gap-1">
+                                                                    <span
+                                                                        className={`mt-1 h-1.5 w-1.5 shrink-0 rounded-full ${getPriorityDot(
+                                                                            task.priority
+                                                                        )}`}
+                                                                    />
+                                                                    <span className="block w-full whitespace-normal break-words">
+                                                                        {task.title}
+                                                                    </span>
+                                                                </div>
 
-                                                                <span className="truncate">
-                                                                    {task.title}
-                                                                </span>
-
+                                                                <TaskHoverCard task={task} />
                                                             </div>
                                                         </div>
                                                     ))}
-
-                                                    {dayTasks.length === 0 && null}
 
                                                 </div>
                                             </>
@@ -664,6 +715,73 @@ export const Calender = ({ user }) => {
 
             </div>
 
+        </div>
+    );
+};
+
+
+/* ─── Hover card shown when hovering a task chip on the calendar ─── */
+const TaskHoverCard = ({ task }) => {
+    const priorityTone =
+        task.priority === "High"
+            ? "text-red-500"
+            : task.priority === "Medium"
+                ? "text-orange-500"
+                : task.priority === "Completed"
+                    ? "text-purple-500"
+                    : "text-emerald-500";
+
+    return (
+        <div className="pointer-events-none absolute left-0 top-full z-50 mt-1 hidden w-64 max-w-[280px] rounded-xl border border-slate-200 bg-white p-3 text-left shadow-xl group-hover/day:block dark:border-slate-700 dark:bg-slate-900">
+            {/* Arrow */}
+            <div className="absolute -top-1 left-4 h-2 w-2 rotate-45 border-l border-t border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900" />
+
+            <p className="text-xs font-semibold text-slate-800 dark:text-slate-100">
+                {task.title}
+            </p>
+
+            {task.description ? (
+                <p className="mt-1.5 max-h-24 overflow-hidden whitespace-pre-wrap break-words text-[11px] leading-relaxed text-slate-500 dark:text-slate-400">
+                    {task.description}
+                </p>
+            ) : (
+                <p className="mt-1.5 text-[11px] italic text-slate-400">
+                    No description
+                </p>
+            )}
+
+            <div className="mt-2.5 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-2 dark:border-slate-800">
+                <span className={`text-[10px] font-semibold ${priorityTone}`}>
+                    {task.priority}
+                </span>
+                <span className="text-[10px] text-slate-400">·</span>
+                <span className="text-[10px] text-slate-500 dark:text-slate-400">
+                    {getStatusLabel(task.rawStatus)}
+                </span>
+            </div>
+
+            <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[10px] text-slate-400">
+                <span>{formatDateKey(task.date)}</span>
+                {task.assignee && (
+                    <>
+                        <span>·</span>
+                        <span className="truncate">Assigned to {task.assignee}</span>
+                    </>
+                )}
+            </div>
+
+            {task.labels?.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1">
+                    {task.labels.slice(0, 3).map((label, i) => (
+                        <span
+                            key={i}
+                            className="rounded bg-slate-100 px-1.5 py-0.5 text-[9px] font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300"
+                        >
+                            {label}
+                        </span>
+                    ))}
+                </div>
+            )}
         </div>
     );
 };

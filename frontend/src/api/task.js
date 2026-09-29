@@ -98,6 +98,17 @@ export const tasksAPI = {
     }
   },
 
+  addComment: async (taskId, payload = {}) => {
+    try {
+      const response = await apiClient.post(`/tasks/${taskId}/comments`, {
+        comment: payload.body || payload.comment || '',
+      })
+      return response.data
+    } catch (error) {
+      throw error.response?.data || error.message
+    }
+  },
+
   getSubtasks: async (taskId) => {
     try {
       const response = await apiClient.get(`/tasks/${taskId}/subtasks`)

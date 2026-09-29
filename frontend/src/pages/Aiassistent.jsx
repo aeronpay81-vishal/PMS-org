@@ -15,6 +15,43 @@ const INITIAL_MESSAGE = {
     "Hi! I'm AeroPilot AI 👋 How can I help you manage your projects, tasks, and team more efficiently?",
 };
 
+function renderAssistantContent(content) {
+  return content.split("\n").map((line, index) => {
+    const heading = line.match(/^\s{0,3}#{1,3}\s+(.+?)\s*#*\s*$/);
+    const parts = (heading ? heading[1] : line).split(/(\*\*.*?\*\*)/g);
+
+    return (
+      <span key={index}>
+        {heading ? (
+          <span className="my-1 inline-block rounded-md bg-amber-100 px-1.5 py-0.5 font-bold text-slate-800">
+            {parts.map((part, partIndex) =>
+              part.startsWith("**") && part.endsWith("**") ? (
+                <strong key={partIndex}>{part.slice(2, -2)}</strong>
+              ) : (
+                part
+              )
+            )}
+          </span>
+        ) : (
+          parts.map((part, partIndex) =>
+            part.startsWith("**") && part.endsWith("**") ? (
+              <strong
+                key={partIndex}
+                className="rounded bg-white-100 px-1 text-slate-800"
+              >
+                {part.slice(2, -2)}
+              </strong>
+            ) : (
+              part
+            )
+          )
+        )}
+        {index < content.split("\n").length - 1 && <br />}
+      </span>
+    );
+  });
+}
+
 export default function AIAssistant() {
   const [isOpen, setIsOpen] = useState(false);
   const [message, setMessage] = useState("");
@@ -167,7 +204,7 @@ export default function AIAssistant() {
             className="
               relative overflow-hidden
               border-b border-white/10
-              bg-gradient-to-br from-slate-950 via-indigo-950 to-violet-900
+              bg-indigo-600/90
               px-5 py-4
               text-white
             "
@@ -206,6 +243,7 @@ export default function AIAssistant() {
                   <p className="mt-0.5 text-[11px] text-slate-300">
                     Your intelligent project copilot
                   </p>
+
                 </div>
               </div>
 
@@ -314,7 +352,9 @@ export default function AIAssistant() {
                       ${item.isError ? "border-red-100 bg-red-50 text-red-600" : ""}
                     `}
                   >
-                    {item.content}
+                    {item.role === "assistant"
+                      ? renderAssistantContent(item.content)
+                      : item.content}
                   </div>
                 </div>
               ))}

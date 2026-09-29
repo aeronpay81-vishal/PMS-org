@@ -2,6 +2,7 @@ from app import db
 from app.models import Task, User, Project, ProjectMember
 from app.utils.permission_checker import PermissionChecker, RolePermissionError
 from datetime import datetime
+from app.services.task_activity_service import TaskActivityService
 
 
 class TaskService:
@@ -130,6 +131,14 @@ class TaskService:
         db.session.add(task)
         db.session.commit()
 
+        if task.project_id:
+            TaskActivityService.log_activity(
+                task.id,
+                user_id,
+                'task_created',
+                f'Created task "{task.summary}"',
+            )
+
         if task.assigned_to:
             from app.services.notification_service import NotificationService
             NotificationService.notify_task_assignment(task.id, task.assigned_to)
@@ -156,32 +165,18 @@ class TaskService:
             # Global manager sees all tasks
             tasks = query.order_by(Task.created_at.desc()).all()
         else:
-            # All project_ids where user is any kind of member
-            all_member_project_ids = db.session.query(ProjectMember.project_id).filter(
-                ProjectMember.user_id == user_id
+            # Ordinary members only see tasks assigned to them. Project owners and
+            # managers retain visibility of tasks in projects they manage.
+            managed_project_ids = db.session.query(ProjectMember.project_id).filter(
+                ProjectMember.user_id == user_id,
+                ProjectMember.role.in_(('owner', 'manager'))
             ).subquery()
-
-            if project_id:
-                try:
-                    p_id = int(project_id)
-                    member = ProjectMember.query.filter_by(project_id=p_id, user_id=user_id).first()
-                    if member:
-                        # Member of this project: see all tasks in it
-                        tasks = query.order_by(Task.created_at.desc()).all()
-                    else:
-                        tasks = query.filter(
-                            (Task.user_id == user_id) | (Task.assigned_to == user_id)
-                        ).order_by(Task.created_at.desc()).all()
-                except (ValueError, TypeError):
-                    tasks = query.filter(
-                        (Task.user_id == user_id) | (Task.assigned_to == user_id)
-                    ).order_by(Task.created_at.desc()).all()
-            else:
-                # No filter: show tasks in all joined projects + personally assigned tasks
-                tasks = query.filter(
-                    (Task.user_id == user_id) | (Task.assigned_to == user_id) |
-                    Task.project_id.in_(all_member_project_ids)
-                ).order_by(Task.created_at.desc()).all()
+            visible_tasks = (
+                (Task.assigned_to == user_id) |
+                (Task.user_id == user_id) |
+                Task.project_id.in_(managed_project_ids)
+            )
+            tasks = query.filter(visible_tasks).order_by(Task.created_at.desc()).all()
 
         return [task.to_dict() for task in tasks]
 
@@ -276,8 +271,20 @@ class TaskService:
         if 'project_id' in data and can_manage_full_task:
             task.project_id = TaskService._validate_project(data.get('project_id'))
 
+        changed_fields = [field for field in data if field in {
+            'summary', 'description', 'priority', 'status', 'labels',
+            'due_date', 'start_date', 'reporter', 'attachment',
+            'assigned_to', 'project_id',
+        }]
         task.updated_at = datetime.utcnow()
         db.session.commit()
+        if changed_fields and task.project_id:
+            TaskActivityService.log_activity(
+                task.id,
+                user_id,
+                'task_updated',
+                f'Updated task "{task.summary}" ({", ".join(changed_fields)})',
+            )
         if task.assigned_to and task.assigned_to != previous_assignee:
             from app.services.notification_service import NotificationService
             NotificationService.notify_task_assignment(task.id, task.assigned_to)
@@ -294,6 +301,15 @@ class TaskService:
         if not PermissionChecker.can_delete_task(user_id, task_id):
             raise RolePermissionError('You do not have permission to delete this task')
 
+        task_title = task.summary
+        task_project_id = task.project_id
+        if task_project_id:
+            TaskActivityService.log_activity(
+                task.id,
+                user_id,
+                'task_deleted',
+                f'Deleted task "{task_title}"',
+            )
         db.session.delete(task)
         db.session.commit()
 

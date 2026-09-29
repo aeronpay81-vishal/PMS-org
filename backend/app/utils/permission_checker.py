@@ -211,13 +211,14 @@ class PermissionChecker:
         if user.role == 'manager':
             return Project.query.order_by(Project.created_at.desc()).all()
 
-        # Regular users see only projects they're members of
+        # Regular users see projects they joined or that were assigned directly
         member_project_ids = db.session.query(ProjectMember.project_id).filter(
             ProjectMember.user_id == user_id
         ).subquery()
 
         return Project.query.filter(
-            Project.id.in_(member_project_ids)
+            (Project.id.in_(member_project_ids)) |
+            (Project.assigned_to == user_id)
         ).order_by(Project.created_at.desc()).all()
 
     @staticmethod

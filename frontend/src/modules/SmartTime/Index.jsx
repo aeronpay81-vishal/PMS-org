@@ -164,7 +164,7 @@ const startOfDay = (date) => {
 const dayDiff = (a, b) =>
   Math.round(
     (startOfDay(b).getTime() - startOfDay(a).getTime()) /
-      DAY_MS
+    DAY_MS
   );
 
 const formatDate = (date) =>
@@ -231,15 +231,15 @@ const SmartTime = () => {
       const projectData =
         projectsRes.status === "fulfilled"
           ? projectsRes.value?.data ||
-            projectsRes.value ||
-            []
+          projectsRes.value ||
+          []
           : [];
 
       const taskData =
         tasksRes.status === "fulfilled"
           ? tasksRes.value?.data ||
-            tasksRes.value ||
-            []
+          tasksRes.value ||
+          []
           : [];
 
       setProjects(
@@ -258,7 +258,7 @@ const SmartTime = () => {
 
       setError(
         err?.message ||
-          "Failed to load project timeline"
+        "Failed to load project timeline"
       );
     } finally {
       setLoading(false);
@@ -320,9 +320,9 @@ const SmartTime = () => {
       result = result.filter((task) =>
         String(
           task.summary ||
-            task.title ||
-            task.name ||
-            ""
+          task.title ||
+          task.name ||
+          ""
         )
           .toLowerCase()
           .includes(query)
@@ -357,8 +357,8 @@ const SmartTime = () => {
         typeof task.capacity === "number"
           ? task.capacity
           : typeof task.workload === "number"
-          ? task.workload
-          : null;
+            ? task.workload
+            : null;
 
       const isDone = [
         "done",
@@ -500,10 +500,10 @@ const SmartTime = () => {
   const progress =
     tasks.length > 0
       ? Math.round(
-          (completedCount /
-            tasks.length) *
-            100
-        )
+        (completedCount /
+          tasks.length) *
+        100
+      )
       : 0;
 
   const capacities = tasks
@@ -515,11 +515,11 @@ const SmartTime = () => {
   const avgCapacity =
     capacities.length > 0
       ? Math.round(
-          capacities.reduce(
-            (a, b) => a + b,
-            0
-          ) / capacities.length
-        )
+        capacities.reduce(
+          (a, b) => a + b,
+          0
+        ) / capacities.length
+      )
       : null;
 
   const teamMembers = Array.from(
@@ -617,7 +617,7 @@ const SmartTime = () => {
         (dependencyId) => {
           const dependencyIndex =
             taskIndex[
-              String(dependencyId)
+            String(dependencyId)
             ];
 
           if (
@@ -659,7 +659,7 @@ const SmartTime = () => {
 
               <div>
                 <div className="flex items-center gap-2">
-                  <h1 className="text-xl font-bold text-slate-900 dark:text-white">
+                  <h1 className="text-xl font-semibold text-slate-900 dark:text-white">
                     Project Timeline
                   </h1>
 
@@ -691,11 +691,10 @@ const SmartTime = () => {
               className="inline-flex items-center justify-center gap-2 self-start rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600 transition hover:bg-slate-50 disabled:opacity-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 lg:self-auto"
             >
               <RefreshCw
-                className={`h-3.5 w-3.5 ${
-                  loading
+                className={`h-3.5 w-3.5 ${loading
                     ? "animate-spin"
                     : ""
-                }`}
+                  }`}
               />
               Refresh
             </button>
@@ -883,11 +882,10 @@ const SmartTime = () => {
                       )
                     );
                   }}
-                  className={`rounded-md px-3 py-1.5 text-[10px] font-semibold transition ${
-                    view === "2weeks"
+                  className={`rounded-md px-3 py-1.5 text-[10px] font-semibold transition ${view === "2weeks"
                       ? "bg-white text-indigo-600 shadow-sm dark:bg-slate-800 dark:text-indigo-400"
                       : "text-slate-500 dark:text-slate-400"
-                  }`}
+                    }`}
                 >
                   2 Weeks
                 </button>
@@ -901,11 +899,10 @@ const SmartTime = () => {
                       )
                     );
                   }}
-                  className={`rounded-md px-3 py-1.5 text-[10px] font-semibold transition ${
-                    view === "month"
+                  className={`rounded-md px-3 py-1.5 text-[10px] font-semibold transition ${view === "month"
                       ? "bg-white text-indigo-600 shadow-sm dark:bg-slate-800 dark:text-indigo-400"
                       : "text-slate-500 dark:text-slate-400"
-                  }`}
+                    }`}
                 >
                   Month
                 </button>
@@ -975,11 +972,10 @@ const SmartTime = () => {
                     !showFilters
                   )
                 }
-                className={`flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-[10px] font-semibold ${
-                  showFilters
+                className={`flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-[10px] font-semibold ${showFilters
                     ? "border-indigo-200 bg-indigo-50 text-indigo-600 dark:border-indigo-900 dark:bg-indigo-950/30 dark:text-indigo-400"
                     : "border-slate-200 text-slate-500 dark:border-slate-800 dark:text-slate-400"
-                }`}
+                  }`}
               >
                 <SlidersHorizontal className="h-3.5 w-3.5" />
                 Filter
@@ -1037,17 +1033,17 @@ const SmartTime = () => {
 
             {selectedProject !==
               "all" && (
-              <button
-                onClick={() =>
-                  setSelectedProject(
-                    "all"
-                  )
-                }
-                className="mt-4 rounded-lg bg-indigo-600 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-indigo-700"
-              >
-                View all projects
-              </button>
-            )}
+                <button
+                  onClick={() =>
+                    setSelectedProject(
+                      "all"
+                    )
+                  }
+                  className="mt-4 rounded-lg bg-indigo-600 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-indigo-700"
+                >
+                  View all projects
+                </button>
+              )}
           </div>
         ) : (
           <div className="overflow-hidden">
@@ -1086,11 +1082,10 @@ const SmartTime = () => {
                         }}
                       >
                         <span
-                          className={`text-[9px] font-semibold ${
-                            isToday
+                          className={`text-[9px] font-semibold ${isToday
                               ? "text-indigo-600 dark:text-indigo-400"
                               : "text-slate-400"
-                          }`}
+                            }`}
                         >
                           {date.toLocaleDateString(
                             undefined,
@@ -1101,11 +1096,10 @@ const SmartTime = () => {
                         </span>
 
                         <span
-                          className={`mt-0.5 text-[11px] font-bold ${
-                            isToday
+                          className={`mt-0.5 text-[11px] font-bold ${isToday
                               ? "flex h-5 w-5 items-center justify-center rounded-md bg-indigo-600 text-white"
                               : "text-slate-600 dark:text-slate-300"
-                          }`}
+                            }`}
                         >
                           {date.getDate()}
                         </span>
@@ -1134,13 +1128,13 @@ const SmartTime = () => {
                 tasks.map((task, index) => {
                   const status =
                     STATUS_META[
-                      task.status
+                    task.status
                     ] ||
                     STATUS_META.todo;
 
                   const priority =
                     PRIORITY_META[
-                      task.priority
+                    task.priority
                     ] ||
                     PRIORITY_META.medium;
 
@@ -1177,14 +1171,14 @@ const SmartTime = () => {
 
                   const color =
                     BAR_COLORS[
-                      index %
-                        BAR_COLORS.length
+                    index %
+                    BAR_COLORS.length
                     ];
 
                   const isMilestone =
                     task.is_milestone ||
                     task.type ===
-                      "milestone";
+                    "milestone";
 
                   return (
                     <div
@@ -1205,11 +1199,10 @@ const SmartTime = () => {
                       <div className="flex min-w-0 items-center gap-3 px-5">
 
                         <div
-                          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
-                            isMilestone
+                          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${isMilestone
                               ? "bg-violet-50 text-violet-600 dark:bg-violet-950/30 dark:text-violet-400"
                               : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400"
-                          }`}
+                            }`}
                         >
                           {isMilestone ? (
                             <Diamond className="h-3.5 w-3.5" />
@@ -1314,8 +1307,8 @@ const SmartTime = () => {
                                   ? "100%"
                                   : task.status ===
                                     "in_progress"
-                                  ? "60%"
-                                  : "30%",
+                                    ? "60%"
+                                    : "30%",
                                 backgroundColor:
                                   color,
                               }}
@@ -1394,8 +1387,8 @@ const SmartTime = () => {
           INSIGHTS
       ====================================================== */}
 
-  
-      
+
+
       {/* =====================================================
           TASK DETAIL DRAWER
       ====================================================== */}
@@ -1437,33 +1430,31 @@ const SmartTime = () => {
                 <div className="mt-3 flex flex-wrap gap-2">
 
                   <span
-                    className={`inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[9px] font-semibold ${
-                      (
+                    className={`inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[9px] font-semibold ${(
                         STATUS_META[
-                          selectedTask
-                            .status
+                        selectedTask
+                          .status
                         ] ||
                         STATUS_META.todo
                       ).badge
-                    }`}
+                      }`}
                   >
                     <span
-                      className={`h-1.5 w-1.5 rounded-full ${
-                        (
+                      className={`h-1.5 w-1.5 rounded-full ${(
                           STATUS_META[
-                            selectedTask
-                              .status
+                          selectedTask
+                            .status
                           ] ||
                           STATUS_META.todo
                         ).dot
-                      }`}
+                        }`}
                     />
 
                     {
                       (
                         STATUS_META[
-                          selectedTask
-                            .status
+                        selectedTask
+                          .status
                         ] ||
                         STATUS_META.todo
                       ).label
@@ -1471,15 +1462,14 @@ const SmartTime = () => {
                   </span>
 
                   <span
-                    className={`rounded-md border px-2 py-1 text-[9px] font-semibold ${
-                      (
+                    className={`rounded-md border px-2 py-1 text-[9px] font-semibold ${(
                         PRIORITY_META[
-                          selectedTask
-                            .priority
+                        selectedTask
+                          .priority
                         ] ||
                         PRIORITY_META.medium
                       ).className
-                    }`}
+                      }`}
                   >
                     {selectedTask.priority}
                   </span>
@@ -1513,7 +1503,7 @@ const SmartTime = () => {
                   label="Capacity"
                   value={
                     selectedTask.capacity !=
-                    null
+                      null
                       ? `${selectedTask.capacity}%`
                       : "Not set"
                   }

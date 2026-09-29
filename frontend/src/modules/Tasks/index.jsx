@@ -32,6 +32,7 @@ import {
   Eye,
   ArrowLeft,
   Share2,
+  Link,
   Smile,
   AtSign,
   User,
@@ -66,8 +67,10 @@ const PRIORITY_META = {
 };
 
 const STATUS_META = {
+  backlog:    { label: "Backlog",     chip: "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700", color: "text-slate-500", icon: CircleDashed },
   todo:        { label: "To Do",       chip: "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700",     color: "text-slate-500",  icon: Circle },
   in_progress: { label: "In Progress", chip: "bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-900/60",       color: "text-blue-500",   icon: CircleDot },
+  review:      { label: "Review",      chip: "bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-900/60", color: "text-purple-500", icon: CircleCheck },
   done:        { label: "Done",        chip: "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900/60", color: "text-emerald-500", icon: CheckCircle },
 };
 
@@ -295,7 +298,7 @@ const Tasks = ({ user }) => {
                 <CheckSquare className="h-3.5 w-3.5" />
                 {isManager ? "Project Board" : "Assigned to me"}
               </div>
-              <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Task board</h1>
+              <h1 className="text-2xl font-semibold tracking-tight text-slate-900 dark:text-white">Task board</h1>
               <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
                 {stats.total} issues · {stats.completionRate}% complete · {stats.inProgress} in progress
               </p>
@@ -303,7 +306,7 @@ const Tasks = ({ user }) => {
             <button
               onClick={() => handleOpenCreateModal()}
               disabled={!isManager}
-              className="inline-flex items-center gap-2 rounded-lg bg-[#0052CC] px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-[#0747A6] transition disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-lg px-4 py-2.5 bg-indigo-600 px-5 text-sm font-semibold text-white shadow-sm shadow-indigo-500/20 transition-all duration-200 hover:bg-indigo-700 hover:shadow-md hover:shadow-indigo-500/20 active:scale-[0.98] dark:bg-indigo-500 dark:hover:bg-indigo-400 transition disabled:opacity-50"
             >
               <Plus className="h-4 w-4" /> New item
             </button>
@@ -678,6 +681,13 @@ const TaskCard = ({ task, canManageTask, onOpen, onEdit, onDelete, onStatusChang
   const isOverdue = task.due_date && new Date(task.due_date) < new Date() && task.status !== "done";
   const canManage = canManageTask(task);
 
+  const refreshActivity = () => tasksAPI.getActivity(task.id)
+    .then((r) => {
+      const d = r?.data || r || [];
+      setActivity(Array.isArray(d) ? d : []);
+    })
+    .catch(() => {});
+
   return (
     <div className="group relative overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm transition hover:border-[#0052CC] hover:shadow-md">
       <div className={`absolute left-0 top-0 h-full w-1 ${p.bar}`} />
@@ -910,6 +920,8 @@ const IssueDetailView = ({
   const [subtaskLoading, setSubtaskLoading] = useState(false);
   const [subtaskError, setSubtaskError] = useState("");
   const [comments, setComments] = useState([]);
+  const [activity, setActivity] = useState([]);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showMoreFields, setShowMoreFields] = useState(false);
   const fileInputRef = useRef(null);
 
@@ -924,6 +936,14 @@ const IssueDetailView = ({
     tasksAPI.getSubtasks(task.id)
       .then((r) => { const d = r?.data || r || []; if (active) { setSubtasks(Array.isArray(d) ? d : []); setSubtasksLoaded(true); } })
       .catch(() => active && setSubtasksLoaded(true));
+    return () => { active = false; };
+  }, [task.id]);
+
+  useEffect(() => {
+    let active = true;
+    tasksAPI.getActivity(task.id)
+      .then((r) => { const d = r?.data || r || []; if (active) setActivity(Array.isArray(d) ? d : []); })
+      .catch(() => active && setActivity([]));
     return () => { active = false; };
   }, [task.id]);
 
@@ -993,6 +1013,7 @@ const IssueDetailView = ({
       }
       resetSubtaskForm();
       reloadSubtasks();
+      refreshActivity();
     } catch (err) {
       setSubtaskError(err?.message || err?.response?.data?.message || "Failed to save subtask");
     } finally {
@@ -1002,7 +1023,11 @@ const IssueDetailView = ({
 
   const handleDeleteSubtask = async (id) => {
     if (!window.confirm("Delete this subtask?")) return;
-    try { await tasksAPI.deleteSubtask(task.id, id); reloadSubtasks(); } catch {}
+    try {
+      await tasksAPI.deleteSubtask(task.id, id);
+      reloadSubtasks();
+      await refreshActivity();
+    } catch {}
   };
 
   const handleToggleSubtask = async (subtask) => {
@@ -1013,6 +1038,7 @@ const IssueDetailView = ({
     try {
       await tasksAPI.updateSubtask(task.id, subtask.id, payload);
       reloadSubtasks();
+      await refreshActivity();
     } catch {
       setSubtasks((items) => items.map((item) => (item.id === subtask.id ? { ...item, status: subtask.status } : item)));
     }
@@ -1033,10 +1059,37 @@ const IssueDetailView = ({
       if (tasksAPI.addComment) {
         const res = await tasksAPI.addComment(task.id, { body: newComment.body });
         const saved = res?.data || res;
-        setComments((c) => c.map((x) => (x.id === newComment.id ? saved : x)));
+        setComments((c) => c.map((x) => (x.id === newComment.id ? {
+          ...saved,
+          body: saved.body || saved.comment,
+          author: saved.author || saved.user,
+        } : x)));
+        await refreshActivity();
       }
     } catch {}
   };
+
+  const insertCommentText = (value) => {
+    setCommentText((current) => `${current}${current && !current.endsWith(" ") ? " " : ""}${value}`);
+  };
+
+  const handleAddLink = () => {
+    const url = window.prompt("Paste a link");
+    if (!url?.trim()) return;
+    const normalizedUrl = /^https?:\/\//i.test(url.trim()) ? url.trim() : `https://${url.trim()}`;
+    insertCommentText(normalizedUrl);
+  };
+
+  const handleMention = () => {
+    const username = window.prompt("Enter username to mention");
+    if (username?.trim()) insertCommentText(`@${username.trim().replace(/^@/, "")}`);
+  };
+
+  const renderCommentText = (text) => text.split(/(https?:\/\/[^\s]+)/g).map((part, index) => (
+    /^https?:\/\//i.test(part) ? (
+      <a key={index} href={part} target="_blank" rel="noreferrer" className="text-[#0052CC] underline hover:text-[#0747A6]">{part}</a>
+    ) : part
+  ));
 
   const doneSubtasks = subtasks.filter((x) => x.status === "done").length;
   const subtaskPct = subtasks.length ? Math.round((doneSubtasks / subtasks.length) * 100) : 0;
@@ -1252,11 +1305,11 @@ const IssueDetailView = ({
                 {[
                   { k: "comments", label: "Comments", icon: MessageSquare },
                   { k: "history", label: "History", icon: History },
-                  { k: "worklog", label: "Work log", icon: Timer },
+              
                 ].map((tab) => {
                   const TabIcon = tab.icon;
                   return (
-                    <button key={tab.k} onClick={() => setActiveTab(tab.k)}
+                    <button key={tab.k} onClick={() => { setActiveTab(tab.k); if (tab.k === "history") refreshActivity(); }}
                       className={`relative inline-flex items-center gap-1.5 rounded-t-md px-3 py-2 text-xs font-semibold transition ${
                         activeTab === tab.k
                           ? "text-[#0052CC] after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:bg-[#0052CC]"
@@ -1277,9 +1330,18 @@ const IssueDetailView = ({
                       <textarea rows={2} value={commentText} onChange={(e) => setCommentText(e.target.value)} placeholder="Add a comment..." className="w-full resize-none rounded-t-lg bg-white dark:bg-slate-900 px-3 py-2.5 text-sm outline-none" />
                       <div className="flex items-center justify-between border-t border-slate-100 dark:border-slate-800 px-2 py-1.5">
                         <div className="flex items-center gap-1">
-                          <button type="button" className="rounded p-1 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"><Paperclip className="h-3.5 w-3.5" /></button>
-                          <button type="button" className="rounded p-1 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"><Smile className="h-3.5 w-3.5" /></button>
-                          <button type="button" className="rounded p-1 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"><AtSign className="h-3.5 w-3.5" /></button>
+                          <button type="button" onClick={handleAddLink} title="Add link" className="rounded p-1 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"><Link className="h-3.5 w-3.5" /></button>
+                          <div className="relative">
+                            <button type="button" onClick={() => setShowEmojiPicker((visible) => !visible)} title="Add emoji" className="rounded p-1 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"><Smile className="h-3.5 w-3.5" /></button>
+                            {showEmojiPicker && (
+                              <div className="absolute bottom-8 left-0 z-10 grid w-44 grid-cols-6 gap-1 rounded-lg border border-slate-200 bg-white p-2 shadow-lg dark:border-slate-700 dark:bg-slate-900">
+                                {["😀", "😂", "😍", "👍", "🎉", "✅", "🔥", "🚀", "💡", "🙏", "❤️", "🎯"].map((emoji) => (
+                                  <button key={emoji} type="button" onClick={() => { insertCommentText(emoji); setShowEmojiPicker(false); }} className="rounded p-1 text-base hover:bg-slate-100 dark:hover:bg-slate-800">{emoji}</button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                          <button type="button" onClick={handleMention} title="Mention a user" className="rounded p-1 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"><AtSign className="h-3.5 w-3.5" /></button>
                         </div>
                         <button type="submit" disabled={!commentText.trim()} className="rounded-md bg-[#0052CC] px-3 py-1 text-xs font-semibold text-white hover:bg-[#0747A6] disabled:opacity-40">Comment</button>
                       </div>
@@ -1300,7 +1362,7 @@ const IssueDetailView = ({
                                 <span className="text-sm font-semibold text-slate-800 dark:text-slate-200">{author}</span>
                                 <span className="text-[11px] text-slate-400">{new Date(c.created_at || Date.now()).toLocaleString()}</span>
                               </div>
-                              <div className="mt-1.5 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 px-3 py-2 text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap">{c.body}</div>
+                              <div className="mt-1.5 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 px-3 py-2 text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap">{renderCommentText(c.body || c.comment || "")}</div>
                             </div>
                           </div>
                         );
@@ -1309,7 +1371,29 @@ const IssueDetailView = ({
                   )}
                 </>
               )}
-              {activeTab === "history" && <p className="py-6 text-center text-xs text-slate-400">History will show changes to this issue.</p>}
+              {activeTab === "history" && (
+                activity.length === 0 ? (
+                  <p className="py-6 text-center text-xs text-slate-400">No history yet.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {activity.map((entry) => {
+                      const actor = entry.user?.full_name || entry.user?.username || "User";
+                      return (
+                        <div key={entry.id} className="flex gap-3">
+                          <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br ${avatarColor(actor)} text-[9px] font-bold text-white`}>{initials(actor)}</div>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-baseline gap-2">
+                              <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">{actor}</span>
+                              <span className="text-[11px] text-slate-400">{new Date(entry.created_at).toLocaleString()}</span>
+                            </div>
+                            <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{entry.details || entry.action}</p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )
+              )}
               {activeTab === "worklog" && <p className="py-6 text-center text-xs text-slate-400">No work logged yet.</p>}
             </div>
           </div>
@@ -1435,8 +1519,18 @@ const CreateTaskModal = ({
     ? aiUsed ? "Regenerate" : "Enhance with AI"
     : "Generate with AI";
 
+  // Only normal team members can be assigned — owners and managers are excluded.
+  const assignableUsers = useMemo(
+    () =>
+      usersList.filter((u) => {
+        const role = String(u.role || u.project_role || "").toLowerCase();
+        return role !== "owner" && role !== "manager";
+      }),
+    [usersList]
+  );
+
   const selectedProject = projects.find((p) => String(p.id) === String(formData.project_id));
-  const selectedAssignee = usersList.find((u) => String(u.id) === String(formData.assigned_to));
+  const selectedAssignee = assignableUsers.find((u) => String(u.id) === String(formData.assigned_to));
 
   // Auto-grow description
   useEffect(() => {
@@ -1894,8 +1988,10 @@ const CreateTaskModal = ({
                       onChange={(e) => setFormData({ ...formData, status: e.target.value })}
                       className="w-full border-0 bg-transparent p-0 text-sm font-semibold text-slate-900 outline-none focus:ring-0 dark:text-white"
                     >
+                      <option value="backlog">Backlog</option>
                       <option value="todo">To Do</option>
                       <option value="in_progress">In Progress</option>
+                      <option value="review">Review</option>
                       <option value="done">Done</option>
                     </select>
                   </div>
@@ -1957,7 +2053,7 @@ const CreateTaskModal = ({
                   <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Assignee</h3>
                   <p className="mt-1 text-xs text-slate-400">
                     {selectedProject
-                      ? `Choose from "${selectedProject.summary}" members.`
+                      ? `Choose from "${selectedProject.summary}" members. Owners and managers are not assignable.`
                       : "Select a project above to see its members."}
                   </p>
                 </div>
@@ -1979,10 +2075,15 @@ const CreateTaskModal = ({
                     className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs text-slate-900 outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/5 dark:border-slate-800 dark:bg-slate-950 dark:text-white"
                   >
                     <option value="">Unassigned</option>
-                    {usersList.map((u) => (
+                    {assignableUsers.map((u) => (
                       <option key={u.id} value={u.id}>{u.full_name || u.username}</option>
                     ))}
                   </select>
+                  {assignableUsers.length === 0 && (
+                    <p className="mt-2 text-[10px] text-amber-600 dark:text-amber-400">
+                      No assignable team members in this project (owners and managers can't be assigned).
+                    </p>
+                  )}
                   {selectedAssignee && (
                     <div className="mt-3 flex items-center gap-2">
                       <div className={`flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br ${avatarColor(selectedAssignee.username || selectedAssignee.full_name)} text-[9px] font-bold text-white`}>

@@ -1,5 +1,6 @@
 from app import db
 from app.models import Task, TaskComment
+from app.services.task_activity_service import TaskActivityService
 from app.utils.permission_checker import PermissionChecker
 
 
@@ -33,4 +34,10 @@ class TaskCommentService:
         )
         db.session.add(task_comment)
         db.session.commit()
+        TaskActivityService.log_activity(
+            task_id,
+            user_id,
+            'comment_added',
+            f'Added comment: "{text}"',
+        )
         return task_comment.to_dict()

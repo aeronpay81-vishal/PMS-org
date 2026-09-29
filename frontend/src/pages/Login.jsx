@@ -265,6 +265,7 @@ const Login = ({ onLogin, showFooter = true }) => {
           : error?.response?.data?.message ||
             error?.message ||
             'Google Login failed. Please try again.'
+        
       setErrorMessage(msg)
     } finally {
       setIsLoading(false)

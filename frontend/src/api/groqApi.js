@@ -28,7 +28,7 @@ const GROQ_API_KEY =
 
 async function callGroqAPI(systemPrompt, userContent) {
   if (!GROQ_API_KEY) {
-    throw new Error(
+    throw new Error( 
       "Missing Groq API key. Set VITE_GROQ_API_KEY or REACT_APP_GROQ_API_KEY"
     );
   }

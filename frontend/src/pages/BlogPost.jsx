@@ -343,10 +343,10 @@ function BlogPost() {
                 >
                   <div className="flex gap-4">
                     <span className="hidden pt-1 text-sm font-bold text-[#6554C0] sm:block">
-                      {String(index + 1).padStart(2, '0')}
+             
                     </span>
 
-                    <div>
+                    <div>                                                                                                     
                       <p className="mb-3 text-xs font-bold uppercase tracking-[0.16em] text-[#6554C0]">
                         Section {index + 1}
                       </p>

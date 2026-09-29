@@ -20,6 +20,7 @@ import {
 } from 'lucide-react'
 import Navbar from '../components/navigation/Navbar.jsx'
 import Footer from './Footer.jsx'
+import { Link } from 'react-router-dom'
 const COMPANY_NAME = 'AeroPilot'
 const SUPPORT_EMAIL = 'support@aeropilot.com'
 const LAST_UPDATED = 'September 17, 2026'
@@ -216,12 +217,12 @@ const SECTIONS = [
       <p>
         If you have questions about this Privacy Policy or how we handle your
         data, contact us at{' '}
-        <a
-          href={`mailto:${SUPPORT_EMAIL}`}
+        <Link
+          to={`mailto:${SUPPORT_EMAIL}`}
           className="font-semibold text-indigo-600 transition hover:text-indigo-700"
         >
           {SUPPORT_EMAIL}
-        </a>
+        </Link>
         .
       </p>
     ),
@@ -444,13 +445,13 @@ const PrivacyPolicy = () => {
                     Have a question about privacy or your information?
                   </p>
 
-                  <a
-                    href={`mailto:${SUPPORT_EMAIL}`}
+                  <Link
+                    to={`mailto:${SUPPORT_EMAIL}`}
                     className="mt-4 inline-flex items-center gap-1.5 text-[10px] font-bold text-white transition hover:text-indigo-300"
                   >
                     Contact support
                     <ArrowUpRight className="h-3 w-3" />
-                  </a>
+                  </Link>
                 </div>
               </div>
             </div>
@@ -570,13 +571,13 @@ const PrivacyPolicy = () => {
                       </p>
                     </div>
 
-                    <a
-                      href={`mailto:${SUPPORT_EMAIL}`}
+                    <Link
+                      to={`mailto:${SUPPORT_EMAIL}`}
                       className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-white px-5 py-3 text-xs font-bold text-slate-950 shadow-xl transition-all duration-200 hover:-translate-y-0.5 hover:bg-indigo-50"
                     >
                       Contact support
                       <ArrowUpRight className="h-3.5 w-3.5" />
-                    </a>
+                    </Link>
                   </div>
                 </div>
               </div>

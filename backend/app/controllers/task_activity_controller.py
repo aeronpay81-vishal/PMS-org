@@ -5,7 +5,7 @@ class TaskActivityController:
     @staticmethod
     def get_task_activity(current_user_id, task_id):
         try:
-            return {'success': True, 'data': TaskActivityService.get_task_activity(task_id)}, 200
+            return {'success': True, 'data': TaskActivityService.get_task_activity(task_id, current_user_id)}, 200
         except ValueError as e:
             return {'success': False, 'message': str(e)}, 404
         except Exception as e:
